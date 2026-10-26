@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>CL · 12-Week Strength Restart</title><style>
+    :root {
+      --black: #0d0d0d;
+      --dark: #1a1a1a;
+      --card: #222;
+      --border: #2e2e2e;
+      --accent: #e8a020;
+      --accent2: #c0392b;
+      --green: #27ae60;
+      --blue: #2980b9;
+      --purple: #8e44ad;
+      --text: #e0e0e0;
+      --muted: #888;
+      --light: #f5f5f5;
+      --phase1: #2980b9;
+      --phase2: #e8a020;
+      --phase3: #c0392b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--black); color: var(--text); }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      line-height: 1.5;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    button { font-family: inherit; }
+
+    .app { max-width: 480px; margin: 0 auto; padding: 16px 14px 24px; }
+
+    .app-header { text-align: center; padding: 12px 0 16px; margin-bottom: 14px; border-bottom: 2px solid var(--accent); }
+    .app-header h1 { font-size: 1.35rem; font-weight: 900; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; }
+    .app-header p { color: var(--muted); margin-top: 4px; font-size: 0.72rem; letter-spacing: 0.5px; }
+
+    /* 1RM stats */
+    .stats-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 18px; }
+    .stat-mini { background: var(--card); border: 1px solid var(--border); border-top: 2px solid var(--accent); border-radius: 6px; padding: 7px 4px; text-align: center; }
+    .stat-mini .lift { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .stat-mini .weight { font-size: 1.05rem; font-weight: 800; color: var(--accent); line-height: 1.2; }
+    .stat-mini .label { font-size: 0.58rem; color: var(--muted); }
+
+    /* Phase section */
+    .phase-section { margin-bottom: 22px; }
+    .phase-banner { border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+    .phase-banner.p1 { background: rgba(41,128,185,0.1); border: 1px solid var(--phase1); }
+    .phase-banner.p2 { background: rgba(232,160,32,0.1); border: 1px solid var(--phase2); }
+    .phase-banner.p3 { background: rgba(192,57,43,0.1); border: 1px solid var(--phase3); }
+    .phase-banner .lab { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.85; }
+    .phase-banner.p1 .lab { color: var(--phase1); }
+    .phase-banner.p2 .lab { color: var(--phase2); }
+    .phase-banner.p3 .lab { color: var(--phase3); }
+    .phase-banner h2 { font-size: 1.05rem; font-weight: 900; color: var(--light); margin-top: 2px; letter-spacing: 0.5px; }
+    .phase-banner .focus { font-size: 0.74rem; color: #bbb; margin-top: 4px; line-height: 1.4; }
+
+    /* Week cards */
+    .week-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+    .week-card.p1 { border-left: 3px solid var(--phase1); }
+    .week-card.p2 { border-left: 3px solid var(--phase2); }
+    .week-card.p3 { border-left: 3px solid var(--phase3); }
+    .week-head { padding: 11px 13px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 10px; -webkit-tap-highlight-color: transparent; }
+    .week-num { font-size: 0.65rem; font-weight: 900; padding: 3px 7px; border-radius: 3px; letter-spacing: 1px; flex-shrink: 0; }
+    .week-card.p1 .week-num { background: var(--phase1); color: white; }
+    .week-card.p2 .week-num { background: var(--phase2); color: var(--black); }
+    .week-card.p3 .week-num { background: var(--phase3); color: white; }
+    .week-info { flex: 1; min-width: 0; }
+    .week-title { font-size: 0.92rem; font-weight: 700; color: var(--light); }
+    .week-sub { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
+    .week-toggle { font-size: 0.7rem; color: var(--muted); flex-shrink: 0; transition: transform 0.2s; }
+    .week-card.open .week-toggle { transform: rotate(90deg); }
+    .week-body { display: none; padding: 0 13px 13px; }
+    .week-card.open .week-body { display: block; }
+
+    .week-note { background: rgba(232,160,32,0.08); border-left: 2px solid var(--accent); padding: 8px 10px; margin-bottom: 11px; border-radius: 0 4px 4px 0; font-size: 0.76rem; color: #ccc; line-height: 1.45; }
+    .week-note.overreach { background: rgba(192,57,43,0.08); border-color: var(--accent2); }
+    .week-note strong { color: var(--accent); }
+    .week-note.overreach strong { color: var(--accent2); }
+
+    .week-weights { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 11px; }
+    .ww { background: var(--dark); border-radius: 4px; padding: 6px 3px; text-align: center; }
+    .ww .lift { font-size: 0.55rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+    .ww .w { font-size: 0.82rem; font-weight: 800; color: var(--accent); line-height: 1.2; margin-top: 1px; }
+
+    .days-list { display: flex; flex-direction: column; gap: 5px; }
+    .day-btn { background: var(--dark); border: 1px solid var(--border); border-radius: 6px; padding: 9px 11px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.15s; -webkit-tap-highlight-color: transparent; }
+    .day-btn:hover { background: rgba(255,255,255,0.04); }
+    .day-btn:active { background: rgba(255,255,255,0.08); }
+    .day-tag { background: var(--accent); color: var(--black); font-size: 0.58rem; font-weight: 800; padding: 2px 5px; border-radius: 3px; letter-spacing: 0.5px; flex-shrink: 0; min-width: 28px; text-align: center; }
+    .day-info { flex: 1; min-width: 0; }
+    .day-name { font-size: 0.83rem; font-weight: 700; color: var(--light); }
+    .day-desc { font-size: 0.68rem; color: var(--muted); margin-top: 1px; }
+    .day-time { font-size: 0.65rem; color: var(--green); flex-shrink: 0; }
+    .day-arrow { font-size: 0.75rem; color: var(--muted); flex-shrink: 0; }
+
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; display: none; animation: fadeIn 0.18s; }
+    .modal-backdrop.open { display: block; }
+    .modal { position: fixed; inset: 0; z-index: 101; display: none; flex-direction: column; background: var(--black); animation: slideUp 0.22s ease-out; }
+    .modal.open { display: flex; }
+    .modal-header { flex-shrink: 0; padding: 12px 14px; padding-top: calc(12px + env(safe-area-inset-top)); background: var(--dark); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .modal-back { background: var(--card); border: 1px solid var(--border); color: var(--light); font-size: 0.8rem; padding: 7px 12px; border-radius: 5px; cursor: pointer; flex-shrink: 0; font-weight: 600; }
+    .modal-back:active { background: rgba(255,255,255,0.08); }
+    .modal-title { flex: 1; min-width: 0; }
+    .modal-title-week { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .modal-title-day { font-size: 0.9rem; font-weight: 800; color: var(--light); margin-top: 2px; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 14px; -webkit-overflow-scrolling: touch; }
+
+    /* Day-card content styles (rendered inside modal) - copied from original */
+    .modal-body .day-card { background: transparent; border: none; margin: 0; border-radius: 0; }
+    .modal-body .day-card > .day-header { display: none; }
+    .modal-body .day-card > .day-body { padding: 0; }
+
+    .block { margin-bottom: 18px; }
+    .block-title { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; flex-wrap: wrap; }
+    .block-title .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-warmup { background: #3498db; }
+    .dot-strength { background: #e8a020; }
+    .dot-accessory { background: #9b59b6; }
+    .dot-metcon { background: #e74c3c; }
+    .dot-finisher { background: #27ae60; }
+    .dot-cooldown { background: #95a5a6; }
+    .block-title .block-label { color: var(--text); }
+    .block-title .block-time { color: var(--muted); font-weight: 400; font-size: 0.65rem; letter-spacing: 0.5px; }
+
+    .warmup-list { color: var(--muted); font-size: 0.83rem; padding-left: 16px; line-height: 1.5; }
+    .warmup-list li { margin-bottom: 4px; }
+    .accessory-rounds { color: var(--muted); font-size: 0.78rem; margin-bottom: 8px; line-height: 1.4; }
+    .accessory-list { list-style: none; }
+    .accessory-list li { display: flex; align-items: baseline; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.83rem; line-height: 1.4; }
+    .accessory-list li:last-child { border-bottom: none; }
+    .accessory-list .reps { background: rgba(155,89,182,0.3); color: #c39bd3; font-weight: 700; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; min-width: 34px; text-align: center; flex-shrink: 0; }
+
+    .set-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .set-table th { background: rgba(255,255,255,0.04); color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.8px; padding: 5px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+    .set-table td { padding: 6px 6px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text); vertical-align: top; }
+    .set-table tr:last-child td { border-bottom: none; }
+    .set-table .highlight td { color: var(--accent); font-weight: 700; }
+    .set-table .weight-cell { color: var(--accent); font-weight: 700; }
+
+    .note-box { background: rgba(232,160,32,0.07); border-left: 3px solid var(--accent); border-radius: 0 5px 5px 0; padding: 9px 12px; margin-top: 10px; font-size: 0.78rem; color: #ccc; line-height: 1.45; }
+    .note-box strong { color: var(--accent); }
+    .warn-box { background: rgba(192,57,43,0.08); border-left: 3px solid var(--accent2); border-radius: 0 5px 5px 0; padding: 9px 12px; margin-top: 10px; font-size: 0.78rem; color: #ccc; line-height: 1.45; }
+    .warn-box strong { color: var(--accent2); }
+    .metcon-box { background: rgba(231,76,60,0.07); border: 1px solid rgba(231,76,60,0.25); border-radius: 8px; padding: 13px; }
+    .metcon-name { font-size: 0.92rem; font-weight: 800; color: #e74c3c; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 1px; }
+    .metcon-format { font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .metcon-movements { list-style: none; padding: 0; }
+    .metcon-movements li { display: flex; align-items: baseline; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.83rem; line-height: 1.4; flex-wrap: wrap; }
+    .metcon-movements li:last-child { border-bottom: none; }
+    .metcon-movements .reps { background: #e74c3c; color: white; font-weight: 900; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; min-width: 34px; text-align: center; flex-shrink: 0; }
+    .metcon-movements .movement { color: var(--text); flex-shrink: 0; }
+    .metcon-movements .rx { color: var(--muted); font-size: 0.74rem; }
+    .finisher-box { background: rgba(39,174,96,0.07); border: 1px solid rgba(39,174,96,0.25); border-radius: 8px; padding: 13px; }
+    .finisher-title { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--green); margin-bottom: 8px; }
+    .change-callout { background: rgba(142,68,173,0.1); border: 1px solid var(--purple); border-radius: 6px; padding: 9px 12px; margin-bottom: 12px; font-size: 0.78rem; color: #ccc; line-height: 1.45; }
+    .change-callout strong { color: #c39bd3; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    /* Aspirational future feature placeholder */
+    /* TODO: editable 1RM inputs that recalculate all percentage-based weights throughout the plan */
+  
+    .guide { margin: 12px 0 18px; background: var(--dark); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: .8rem; }
+    .guide summary { cursor: pointer; font-weight: 700; color: var(--accent); }
+    .guide p, .guide ul { margin-top: 10px; }
+    .guide ul { padding-left: 18px; }
+    .week-head { width: 100%; border: 0; background: transparent; color: inherit; text-align: left; }
+    .day-btn { width: 100%; color: inherit; text-align: left; }
+    .week-body[hidden] { display: none; }
+    .week-card.open .week-body { display: block; }
+    button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .week-weights { grid-template-columns: repeat(2, 1fr); }
+    .stats-strip { grid-template-columns: repeat(3, 1fr); }
+    .modal-title-day { margin: 0; font-size: .9rem; }
+    .modal-body h3 { font-size: .85rem; color: var(--accent); margin-bottom: 8px; }
+    .modal-body p { font-size: .82rem; margin: 8px 0; }
+    .modal-body ul { padding-left: 18px; font-size: .83rem; }
+    .modal-body li { margin-bottom: 8px; }
+    .set-table { margin: 8px 0; }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style></head><body>
+<main class="app"><header class="app-header"><h1>CL · 12-Week Strength Restart</h1><p>Strength · Sustainable accessories · Recovery around work</p></header><div class="stats-strip"><div class="stat-mini"><div class="lift">Bench</div><div class="weight">160</div><div class="label">estimated 1RM · lb</div></div><div class="stat-mini"><div class="lift">Back squat</div><div class="weight">155</div><div class="label">estimated 1RM · lb</div></div><div class="stat-mini"><div class="lift">Deadlift</div><div class="weight">225</div><div class="label">estimated 1RM · lb</div></div><div class="stat-mini"><div class="lift">Push press</div><div class="weight">110</div><div class="label">estimated 1RM · lb</div></div><div class="stat-mini"><div class="lift">Front squat</div><div class="weight">125</div><div class="label">estimated 1RM · lb</div></div></div>
+<details class="guide" open><summary>How to use this restart</summary>
+<p>Four training days, with Day 3 kept easy and Day 4 optional recovery. Start Week 1, Day 1. Move sessions around work shifts; avoid stacking missed sessions. Strength estimates anchor the plan, while training tolerance rebuilds.</p>
+<p><strong>Weights:</strong> barbell loads include the bar; dumbbell loads are per hand. Listed loads are targets, not minimums. Repetitions in reserve means additional good repetitions you could perform before failure.</p>
+<p><strong>Progress only when recovered.</strong> Keep 3-4 repetitions available on accessories throughout the cycle. Stop sets before technique changes.</p>
+</details>
+<details class="guide"><summary>Accessory progression & workload adjustments</summary>
+<ul><li>Repeat a comfortable dose for at least two exposures. Confirm no worsening later that day, next morning, or at the next work shift.</li>
+<li>Add repetitions first. Rows progress from 10-12 toward 15; incline press from 10 toward 12; curls from 12 toward 15; pushdowns from 12 toward 15. Once the top is comfortable for two exposures, use the smallest weight increase and return to the lower repetition target.</li>
+<li>A 5 lb dumbbell increase may be too large for curls. Keep the existing weight or use smaller increments. No automatic weekly accessory increases and no forced slow negatives.</li>
+<li>Weeks 4 and 8: halve accessory sets, rounding down to one where applicable. Week 11: one easy set per selected accessory. Week 12: accessories optional.</li>
+<li>After a demanding shift or poor recovery, omit optional arms and conditioning first. If warm-ups also feel unusually difficult, reduce main-lift load 5-10%, rounded down to an available increment, or remove a working set.</li>
+<li>Repeat or reduce a planned load if effort exceeds the week's target. Do not increase load and volume together. No missed or forced repetitions.</li></ul>
+</details>
+<details class="guide"><summary>Elbow symptoms & when to get help</summary>
+<p>Strengthening may improve capacity, but does not establish the cause of elbow discomfort or guarantee that other muscles will take its load. This plan is general training, not injury rehabilitation.</p>
+<p>Stop a provoking exercise for sharp or increasing pain, altered technique, or loss of strength. If symptoms are worse the next morning or at work, reduce or omit that exercise next time.</p>
+<p>Recurring symptoms with repetitive lifting, especially lasting several weeks or affecting work, warrant clinician or physical therapist assessment. Seek prompt medical care for new numbness, marked weakness, significant swelling, or an acute snapping injury. Severe pain with difficulty moving, deformity, or a hot swollen elbow with fever needs urgent assessment.</p>
+</details>
+<section class="phase-section"><div class="phase-banner p1"><div class="lab">Phase 1 · Weeks 1-4</div><h2>Reentry & foundation</h2><div class="focus">Rebuild volume gradually. Recovery in Week 4.</div></div><div id="weeks-p1"></div></section><section class="phase-section"><div class="phase-banner p2"><div class="lab">Phase 2 · Weeks 5-8</div><h2>Strength development</h2><div class="focus">Lower repetitions, controlled loading. Recovery in Week 8.</div></div><div id="weeks-p2"></div></section><section class="phase-section"><div class="phase-banner p3"><div class="lab">Phase 3 · Weeks 9-12</div><h2>Strength practice & review</h2><div class="focus">Heavier practice, Week 11 taper, Week 12 submaximal review.</div></div><div id="weeks-p3"></div></section></main><div class="modal-backdrop" id="modalBackdrop"></div><div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalDay" aria-describedby="modalWeek"><div class="modal-header"><button class="modal-back" id="modalBack">← Back</button><div class="modal-title"><div class="modal-title-week" id="modalWeek"></div><h2 class="modal-title-day" id="modalDay"></h2></div></div><div class="modal-body" id="modalBody" tabindex="-1"></div></div><script>
+    /* {% raw %} */
+    const WEEKS = [{"num": 1, "name": "Reentry", "phase": 1, "bench": [2, 8, 100], "squat": [2, 8, 100], "deadlift": [2, 6, 135], "press": [3, 5, 65], "effort": "3-4 good repetitions available"}, {"num": 2, "name": "Build tolerance", "phase": 1, "bench": [3, 8, 105], "squat": [3, 8, 100], "deadlift": [2, 6, 140], "press": [3, 5, 65], "effort": "3-4 good repetitions available"}, {"num": 3, "name": "Build volume", "phase": 1, "bench": [3, 8, 110], "squat": [3, 8, 105], "deadlift": [2, 6, 145], "press": [3, 5, 70], "effort": "approximately 3 repetitions available"}, {"num": 4, "name": "Deload", "phase": 1, "bench": [2, 6, 95], "squat": [2, 6, 90], "deadlift": [2, 5, 120], "press": [2, 5, 55], "effort": "easy effort"}, {"num": 5, "name": "Strength foundation", "phase": 2, "bench": [3, 5, 115], "squat": [3, 5, 110], "deadlift": [2, 4, 150], "press": [3, 4, 70], "effort": "2-3 repetitions available"}, {"num": 6, "name": "Strength build", "phase": 2, "bench": [3, 5, 120], "squat": [3, 5, 115], "deadlift": [2, 4, 155], "press": [3, 4, 75], "effort": "2-3 repetitions available"}, {"num": 7, "name": "Consolidate strength", "phase": 2, "bench": [3, 5, 120], "squat": [3, 5, 120], "deadlift": [2, 4, 160], "press": [3, 4, 75], "effort": "2-3 repetitions available"}, {"num": 8, "name": "Deload", "phase": 2, "bench": [2, 5, 100], "squat": [2, 5, 100], "deadlift": [2, 4, 135], "press": [2, 4, 60], "effort": "easy effort"}, {"num": 9, "name": "Heavier practice", "phase": 3, "bench": [3, 3, 125], "squat": [3, 3, 120], "deadlift": [2, 3, 175], "press": [3, 3, 80], "effort": "approximately 2 repetitions available; no grinding"}, {"num": 10, "name": "Strength practice", "phase": 3, "bench": [3, 3, 130], "squat": [3, 3, 125], "deadlift": [2, 3, 180], "press": [3, 3, 85], "effort": "approximately 2 repetitions available; no grinding"}, {"num": 11, "name": "Taper", "phase": 3, "bench": [2, 2, 135], "squat": [2, 2, 130], "deadlift": [2, 2, 185], "press": [2, 3, 80], "effort": "approximately 2 repetitions available; no grinding"}, {"num": 12, "name": "Progress review", "phase": 3, "bench": [2, 5, 110], "squat": [2, 5, 105], "deadlift": [2, 3, 155], "press": [2, 5, 65], "effort": "easy effort"}];
+    const DAY_NAMES = ['Bench & supported pulling', 'Squat & deadlift', 'Technique & aerobic work', 'Optional recovery & core', 'Push press & conditioning'];
+    const DAY_DESC = ['Bench, light rows, optional conditioning', 'Main lifts, split squat or front squat, core', 'Easy aerobic work; optional clean technique', 'Rest or easy movement; optional light arms', 'Press first, controlled conditioning second'];
+    const LIFTS = [['bench','Bench press'],['squat','Back squat'],['deadlift','Deadlift'],['press','Push press']];
+    const fmt = a => a[0] + ' × ' + a[1] + ' at ' + a[2] + ' lb';
+    const section = (title, body) => '<section class="block"><h3>' + title + '</h3>' + body + '</section>';
+    const list = items => '<ul>' + items.map(s => '<li>' + s + '</li>').join('') + '</ul>';
+    const note = s => '<div class="note-box">' + s + '</div>';
+    const recovery = n => n === 4 || n === 8;
+    function accessorySets(n, normal) {
+      return recovery(n) ? Math.max(1, Math.floor(normal / 2)) : n === 11 ? 1 : normal;
+    }
+    function mainLift(w, key) {
+      const name = LIFTS.find(l => l[0] === key)[1];
+      return section(name, '<table class="set-table"><thead><tr><th>Working sets</th><th>Reps per set</th><th>Total barbell weight</th></tr></thead><tbody><tr><td>' + w[key][0] + '</td><td>' + w[key][1] + '</td><td class="weight-cell">' + w[key][2] + ' lb</td></tr></tbody></table>' +
+        '<p>Rest 2-3 minutes; allow 3-4 minutes for heavier squat and deadlift sets. Target: ' + w.effort + '.</p>' +
+        (w.num === 2 && (key === 'bench' || key === 'squat') ? note('If Week 1 felt demanding, first add the third set at 100 lb. Bench progresses to 105 lb only after the added set is well tolerated. Do not force both increases.') : '') +
+        (key === 'press' ? note('Complete push press before conditioning. Use smooth leg drive and controlled lockout. Stop before repetitions become slow or untidy.') : ''));
+    }
+    function conditioning(w, day) {
+      const n = w.num;
+      if (recovery(n) || n >= 11) return section('Optional easy aerobic work', '<p>Walk or cycle for 10-20 comfortable minutes, or skip this block. No conditioning circuit or score target.</p>');
+      const duration = day === 0 ? (n<=2 ? '6-8' : n===3 ? 'up to 10' : n<=7 ? '8-12' : '8-10') : (n<=2 ? '10-12' : n===3 ? 'up to 15' : n<=7 ? '12-18' : '12-15');
+      return section((day===0 ? 'Optional conditioning' : 'Controlled conditioning') + ': ' + duration + ' minutes',
+        list(['6-8 bodyweight step-ups total, alternating legs. Use a low, stable platform; choose a height that allows control without pushing off the trailing leg.',
+        '8-10 sit-ups or dead bugs total. For dead bugs, alternate sides.',
+        '60 seconds of easy-to-moderate walking or cycling.',
+        ...(day===0 ? ['Optional: 5-8 elevated push-ups only if elbows and shoulders are comfortable. Raise the hands further or omit if needed.'] : [])]) +
+        note('Repeat steadily, around 5-6/10 effort initially. No minimum rounds, race, or all-out finish. Duration increases are optional. Use the shorter duration after a demanding shift. No loaded step-ups, timed cleans, or automatic increases in weight.'));
+    }
+    function getDayContent(w, d) {
+      const n = w.num, optional = n===12 ? '<p>All accessory work is optional during progress review week.</p>' : '';
+      let body = note('<strong>Week ' + n + ' · Day ' + (d+1) + '.</strong> ' + w.effort + '. Barbell weights include the bar; dumbbell weights are per hand. Main-lift numbers are targets, not obligations.');
+      body += section('Warm-up', list(['5-8 minutes of easy walking or cycling. Row only if gripping and pulling feel comfortable.',
+        'Comfortable mobility for the movements ahead. Do not force an elbow, shoulder, or front-rack position.',
+        d===0 || d===1 || d===4 ? 'Before each main lift, use 2-4 short, progressively heavier practice sets. Reduce repetitions as weight rises; warm-ups should not tire you.' : 'Use comfortable unloaded movement practice. No tiring high-repetition warm-ups.']));
+      if (d===0) {
+        body += mainLift(w,'bench');
+        body += section('Supported pulling & light accessories', optional + list([
+          'Chest-supported DB row: one easy warm-up, then ' + accessorySets(n,2) + ' × 10-12. Week 1: 15 lb per hand. Use 20 lb only if clearly easy and comfortable. Keep the chest supported, wrists comfortable, and lower steadily. Build to 2 × 15 before adding weight.',
+          'Incline DB press: ' + accessorySets(n, n>=3 ? 2 : 1) + ' × 10-12 at a trial load of 15-20 lb per hand. From Week 3, the second set is optional and only added if needed and well tolerated.',
+          'Light band pull-aparts: ' + accessorySets(n,1) + ' × 12-15. Comfortable movement, no forced stretch.'
+        ]));
+        body += conditioning(w,0);
+      } else if (d===1) {
+        body += mainLift(w,'squat') + mainLift(w,'deadlift');
+        body += section('Lower-body accessory & core', optional + list([
+          n===9 || n===10 ? 'Optional front squat instead of split squat: 2 × 5 at 65 lb total. Increase only up to 75 lb if easy, the front rack is comfortable, and Tuesday recovery remains good. Omit if catching or the front rack provokes elbow symptoms.' :
+            'Supported split squat: ' + (recovery(n) || n===11 ? '1' : '1-2') + ' × 8 each leg, bodyweight. Use support. Build to 2 × 12 before considering 5-10 lb dumbbells per hand. No front squats in Week 11.',
+          'Dead bug: ' + accessorySets(n,2) + ' × 6-8 each side. Move slowly and keep the trunk controlled.'
+        ]));
+      } else if (d===2) {
+        body += section('Optional clean technique', list(['Use PVC or a light training bar for 4-6 sets of 2 technique repetitions, with a full reset. Keep this easy; a standard 45 lb bar is appropriate only if genuinely easy and comfortable.',
+          'No heavy clean progression or clean max is prescribed. Barbell strength estimates do not establish clean capacity.',
+          'If the catch reproduces elbow discomfort, omit catches. Walk or cycle instead. Do not automatically replace them with swings.']));
+        body += section('Easy aerobic work', '<p>15-25 minutes of walking or cycling at a conversational pace, followed by comfortable mobility. Shorten or skip if fatigued. This should help recovery.</p>');
+      } else if (d===3) {
+        body += section('Optional recovery day', '<p>Rest completely, or walk/cycle easily for 15-25 minutes. No missed workout to make up. Choose rest after demanding shifts or poor sleep.</p>');
+        body += section('Optional core & arms', optional + list([
+          'Side plank: ' + accessorySets(n,2) + ' × 15-30 seconds each side. Use a bent-knee version or omit if supporting yourself irritates the shoulder or elbow.',
+          'Optional DB curl: ' + accessorySets(n,1) + ' × 12 at a trial load of 5-10 lb per hand. Choose the comfortable grip. Add a second set only after repeated good tolerance; no separate hammer-curl prescription.',
+          'Optional rope pushdown: ' + accessorySets(n,1) + ' × 12-15, light enough to leave 3-4 repetitions available. Add a second set only if comfortable. Do not force the elbow into lockout.',
+          'Optional light face pull: ' + accessorySets(n,1) + ' × 12-15, instead of additional pull-aparts. No forced range or heavy loading.'
+        ]));
+        if (recovery(n) || n===11) body += note('Use one easy set of each selected accessory at most. No extra curl or pushdown set this week.');
+      } else {
+        body += mainLift(w,'press');
+        body += conditioning(w,4);
+      }
+      body += section('Finish & check recovery', '<p>Use 3-5 minutes of easy movement and comfortable mobility. No prescribed dead hangs or forced stretches. Check symptoms later today, tomorrow morning, and at the next work shift.</p>');
+      if (n===12) body += note('<strong>Progress review:</strong> Record loads, repetitions, estimated repetitions remaining, elbow response, sleep, and how work shifts felt. Compare similar-effort sets with early weeks. No mandatory max or PR attempts; use these observations to plan the next block.');
+      return body;
+    }
+    function weekNote(w) {
+      if (w.num===1) return 'Start here. Rebuild tolerance after the training break; finish with 3-4 good repetitions available.';
+      if (w.num===2) return 'Add the third bench and squat set only if recovery, work performance, and elbow response are good. See the workout for the 100 lb bridge option.';
+      if (recovery(w.num)) return 'Deload: easy main lifts, roughly half the usual accessory sets, and easy aerobic work only.';
+      if (w.num===11) return 'Taper: fewer main-lift sets, one easy set per selected accessory, no front squats, and no hard conditioning.';
+      if (w.num===12) return 'Submaximal progress review. Accessories and easy aerobic work are optional. Record recovery and performance; no required max attempts.';
+      return 'Advance only with steady technique, the planned repetitions in reserve, and no worsening symptoms or work tolerance. Repeating a weight is progress.';
+    }
+    function renderWeekCard(w) {
+      return '<article class="week-card p' + w.phase + (w.num===1 ? ' open' : '') + '" id="week-' + w.num + '">' +
+        '<button class="week-head" aria-expanded="' + (w.num===1) + '" aria-controls="body-' + w.num + '">' +
+        '<span class="week-num">W' + w.num + '</span><span class="week-info"><span class="week-title">' + w.name + '</span><br><span class="week-sub">' + w.effort + '</span></span><span class="week-toggle" aria-hidden="true">›</span></button>' +
+        '<div class="week-body" id="body-' + w.num + '"' + (w.num===1 ? '' : ' hidden') + '><div class="week-note">' + weekNote(w) + '</div><div class="week-weights">' +
+        LIFTS.map(([k,label]) => '<div class="ww"><div class="lift">' + label + '</div><div class="w">' + fmt(w[k]) + '</div></div>').join('') +
+        '</div><div class="days-list">' + DAY_NAMES.map((name,d) => '<button class="day-btn" data-week="' + w.num + '" data-day="' + d + '"><span class="day-tag">D' + (d+1) + '</span><span class="day-info"><span class="day-name">' + name + '</span><br><span class="day-desc">' + DAY_DESC[d] + '</span></span><span class="day-arrow" aria-hidden="true">›</span></button>').join('') + '</div></div></article>';
+    }
+    let lastTrigger;
+    function openDay(num,d,trigger) {
+      lastTrigger=trigger || document.activeElement;
+      const w=WEEKS.find(w=>w.num===num);
+      document.getElementById('modalWeek').textContent='Week ' + num + ' · ' + w.name;
+      document.getElementById('modalDay').textContent='Day ' + (d+1) + ': ' + DAY_NAMES[d];
+      document.getElementById('modalBody').innerHTML=getDayContent(w,d);
+      document.getElementById('modal').classList.add('open');
+      document.getElementById('modalBackdrop').classList.add('open');
+      document.querySelector('.app').inert=true;
+      document.body.style.overflow='hidden';
+      document.getElementById('modalBody').scrollTop=0;
+      document.getElementById('modalBack').focus();
+    }
+    function closeModal() {
+      document.getElementById('modal').classList.remove('open');
+      document.getElementById('modalBackdrop').classList.remove('open');
+      document.querySelector('.app').inert=false;
+      document.body.style.overflow='';
+      if(lastTrigger) lastTrigger.focus();
+    }
+    for(let p=1;p<=3;p++) document.getElementById('weeks-p'+p).innerHTML=WEEKS.filter(w=>w.phase===p).map(renderWeekCard).join('');
+    document.querySelectorAll('.week-head').forEach(b=>b.addEventListener('click',()=>{
+      const open=b.getAttribute('aria-expanded')!=='true';
+      b.setAttribute('aria-expanded',String(open));
+      b.parentElement.classList.toggle('open',open);
+      document.getElementById(b.getAttribute('aria-controls')).hidden=!open;
+    }));
+    document.querySelectorAll('.day-btn').forEach(b=>b.addEventListener('click',()=>openDay(Number(b.dataset.week),Number(b.dataset.day),b)));
+    document.getElementById('modalBack').addEventListener('click',closeModal);
+    document.getElementById('modalBackdrop').addEventListener('click',closeModal);
+    document.addEventListener('keydown',e=>{
+      if(!document.getElementById('modal').classList.contains('open')) return;
+      if(e.key==='Escape') closeModal();
+      if(e.key==='Tab') { e.preventDefault(); document.getElementById('modalBack').focus(); }
+    });
+    /* {% endraw %} */
+</script></body></html>
