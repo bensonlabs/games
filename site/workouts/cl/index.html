@@ -178,6 +178,15 @@
     .modal-body li { margin-bottom: 8px; }
     .set-table { margin: 8px 0; }
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+    .table-scroll { max-width: 100%; overflow-x: auto; }
+    .table-scroll .set-table { min-width: 310px; }
+    .table-caption { color: var(--muted); font-size: .7rem !important; }
+    .modal-body .accessory-list, .modal-body .metcon-movements { padding-left: 0; }
+    .modal-body .accessory-list li, .modal-body .metcon-movements li { margin-bottom: 0; }
+    .modal-body .accessory-list .reps { min-width: 44px; }
+    .block-title { margin-top: 4px; }
+    .metcon-movements .movement { flex-shrink: 1; }
 </style></head><body>
 <main class="app"><header class="app-header"><h1>CL · 12-Week Strength Restart</h1><p>Strength · Sustainable accessories · Recovery around work</p></header><div class="stats-strip"><div class="stat-mini"><div class="lift">Bench</div><div class="weight">160</div><div class="label">estimated 1RM · lb</div></div><div class="stat-mini"><div class="lift">Back squat</div><div class="weight">155</div><div class="label">estimated 1RM · lb</div></div><div class="stat-mini"><div class="lift">Deadlift</div><div class="weight">225</div><div class="label">estimated 1RM · lb</div></div><div class="stat-mini"><div class="lift">Push press</div><div class="weight">110</div><div class="label">estimated 1RM · lb</div></div><div class="stat-mini"><div class="lift">Front squat</div><div class="weight">125</div><div class="label">estimated 1RM · lb</div></div></div>
 <details class="guide" open><summary>How to use this restart</summary>
@@ -205,60 +214,104 @@
     const DAY_DESC = ['Bench, light rows, optional conditioning', 'Main lifts, split squat or front squat, core', 'Easy aerobic work; optional clean technique', 'Rest or easy movement; optional light arms', 'Press first, controlled conditioning second'];
     const LIFTS = [['bench','Bench press'],['squat','Back squat'],['deadlift','Deadlift'],['press','Push press']];
     const fmt = a => a[0] + ' × ' + a[1] + ' at ' + a[2] + ' lb';
-    const section = (title, body) => '<section class="block"><h3>' + title + '</h3>' + body + '</section>';
-    const list = items => '<ul>' + items.map(s => '<li>' + s + '</li>').join('') + '</ul>';
+
+    function blockTitle(title, type, time='') {
+      return '<div class="block-title"><span class="dot dot-' + type + '"></span><span class="block-label">' + title + '</span>' + (time ? '<span class="block-time">' + time + '</span>' : '') + '</div>';
+    }
+    function section(title, body) {
+      const type = /Warm-up/i.test(title) ? 'warmup' : /accessor|core|arms|pulling/i.test(title) ? 'accessory' : /aerobic|conditioning|recovery day/i.test(title) ? 'metcon' : /Finish/i.test(title) ? 'cooldown' : 'strength';
+      const label = type==='accessory' ? 'Accessory · ' : type==='metcon' ? 'WOD · ' : '';
+      return '<section class="block">' + blockTitle(label + title, type) + body + '</section>';
+    }
+    function list(items) {
+      return '<ul class="accessory-list">' + items.map(s => {
+        const dose = s.match(/(?:[0-9]+(?:-[0-9]+)?) × ([0-9]+(?:-[0-9]+)?)/);
+        const reps = dose ? dose[1] : '•';
+        return '<li><span class="reps">' + reps + '</span><span>' + s + '</span></li>';
+      }).join('') + '</ul>';
+    }
     const note = s => '<div class="note-box">' + s + '</div>';
+    const REFERENCE_MAX = {bench:160, squat:155, deadlift:225, press:110};
+    function rampSets(key, weight) {
+      const base = key==='deadlift' ? 95 : 45;
+      const candidates = [base, Math.floor(weight * .65 / 5) * 5, Math.floor(weight * .85 / 5) * 5];
+      const weights = [...new Set(candidates.filter(x=>x>=base && x<weight))].sort((a,b)=>a-b);
+      return weights.map((load,i)=>({load,reps:i===0 ? (key==='deadlift' ? 5 : 8) : i===1 ? 5 : 3,working:false}));
+    }
+    function strengthTable(key, prescription, rest) {
+      const [sets,reps,weight] = prescription;
+      const ramps = rampSets(key,weight);
+      const rows = [...ramps,...Array.from({length:sets},()=>({load:weight,reps,working:true}))];
+      return '<div class="table-scroll"><table class="set-table"><thead><tr><th>Set</th><th>Reps</th><th>~% 1RM</th><th>Weight</th><th>Rest</th></tr></thead><tbody>' +
+        rows.map((r,i)=>'<tr' + (r.working ? ' class="highlight"' : '') + '><td>' + (i+1) + (r.working ? '' : ' (warmup)') + '</td><td>' + r.reps + '</td><td>' + Math.round(r.load/REFERENCE_MAX[key]*100) + '%</td><td class="weight-cell">' + r.load + ' lb</td><td>' + (r.working ? rest : '60-90 sec') + '</td></tr>').join('') +
+        '</tbody></table></div>';
+    }
     const recovery = n => n === 4 || n === 8;
     function accessorySets(n, normal) {
       return recovery(n) ? Math.max(1, Math.floor(normal / 2)) : n === 11 ? 1 : normal;
     }
+
     function mainLift(w, key) {
       const name = LIFTS.find(l => l[0] === key)[1];
-      return section(name, '<table class="set-table"><thead><tr><th>Working sets</th><th>Reps per set</th><th>Total barbell weight</th></tr></thead><tbody><tr><td>' + w[key][0] + '</td><td>' + w[key][1] + '</td><td class="weight-cell">' + w[key][2] + ' lb</td></tr></tbody></table>' +
-        '<p>Rest 2-3 minutes; allow 3-4 minutes for heavier squat and deadlift sets. Target: ' + w.effort + '.</p>' +
-        (w.num === 2 && (key === 'bench' || key === 'squat') ? note('If Week 1 felt demanding, first add the third set at 100 lb. Bench progresses to 105 lb only after the added set is well tolerated. Do not force both increases.') : '') +
-        (key === 'press' ? note('Complete push press before conditioning. Use smooth leg drive and controlled lockout. Stop before repetitions become slow or untidy.') : ''));
+      const rest = (key==='squat' || key==='deadlift') && w.num>=9 && w.num<=11 ? '3-4 min' : '2-3 min';
+      const cue = w.num<=2 ? 'Reentry cue: finish with 3-4 good repetitions available. Repeat or reduce the load if needed.' :
+        recovery(w.num) ? 'Deload cue: keep every repetition easy. Do not add extra working sets.' :
+        w.num<=7 ? 'Strength cue: steady technique and controlled repetitions. Take the full rest; no forced repetitions.' :
+        w.num===12 ? 'Review cue: submaximal practice only. Record how the sets feel; no mandatory max attempt.' :
+        'Heavy-practice cue: leave approximately 2 good repetitions available. No grinders.';
+      return '<section class="block">' + blockTitle('Strength · ' + name,'strength',key==='deadlift' ? '15-20 min' : '15-25 min') +
+        strengthTable(key,w[key],rest) +
+        '<p class="table-caption">Weights include the bar. Percentages are rounded estimates based on the reference 1RM. Warm-up sets are additional to the approved working sets.</p>' +
+        note('<strong>' + cue.split(':')[0] + ':</strong>' + cue.slice(cue.indexOf(':')+1)) +
+        (w.num===2 && (key==='bench' || key==='squat') ? note('If Week 1 felt demanding, first add the third set at 100 lb. Bench progresses to 105 lb only after the added set is well tolerated. Do not force both increases.') : '') +
+        (key==='press' ? note('Complete push press before the WOD. Use smooth leg drive and controlled lockout. Stop before repetitions become slow or untidy.') : '') + '</section>';
     }
+
     function conditioning(w, day) {
-      const n = w.num;
-      if (recovery(n) || n >= 11) return section('Optional easy aerobic work', '<p>Walk or cycle for 10-20 comfortable minutes, or skip this block. No conditioning circuit or score target.</p>');
-      const duration = day === 0 ? (n<=2 ? '6-8' : n===3 ? 'up to 10' : n<=7 ? '8-12' : '8-10') : (n<=2 ? '10-12' : n===3 ? 'up to 15' : n<=7 ? '12-18' : '12-15');
-      return section((day===0 ? 'Optional conditioning' : 'Controlled conditioning') + ': ' + duration + ' minutes',
-        list(['6-8 bodyweight step-ups total, alternating legs. Use a low, stable platform; choose a height that allows control without pushing off the trailing leg.',
-        '8-10 sit-ups or dead bugs total. For dead bugs, alternate sides.',
-        '60 seconds of easy-to-moderate walking or cycling.',
-        ...(day===0 ? ['Optional: 5-8 elevated push-ups only if elbows and shoulders are comfortable. Raise the hands further or omit if needed.'] : [])]) +
-        note('Repeat steadily, around 5-6/10 effort initially. No minimum rounds, race, or all-out finish. Duration increases are optional. Use the shorter duration after a demanding shift. No loaded step-ups, timed cleans, or automatic increases in weight.'));
+      const n=w.num;
+      if(recovery(n) || n>=11) return section('Optional easy aerobic work', '<div class="metcon-box"><div class="metcon-name">Recovery pace</div><div class="metcon-format">Optional · 10-20 minutes · No score target</div><p>Walk or cycle comfortably, or skip this block. No conditioning circuit.</p></div>');
+      const duration=day===0 ? (n<=2 ? '6-8' : n===3 ? 'up to 10' : n<=7 ? '8-12' : '8-10') : (n<=2 ? '10-12' : n===3 ? 'up to 15' : n<=7 ? '12-18' : '12-15');
+      const name=day===0 ? 'Chest Burner · Scaled' : 'The Grind · Scaled';
+      const movements=[
+        ['6-8','Bodyweight step-ups','total, alternating legs; use a low, stable platform and a controlled height'],
+        ['8-10','Sit-ups or dead bugs','total; alternate sides for dead bugs'],
+        ['60 sec','Walk or cycle','easy-to-moderate effort'],
+        ...(day===0 ? [['5-8','Optional elevated push-ups','only if elbows and shoulders are comfortable; raise the hands or omit as needed']] : [])
+      ];
+      return '<section class="block">' + blockTitle((day===0 ? 'Optional WOD · ' : 'WOD · ') + name,'metcon',duration+' min') +
+        '<div class="metcon-box"><div class="metcon-name">' + name + '</div><div class="metcon-format">' + duration + ' minutes · Repeat at a controlled pace · No round target</div>' +
+        '<ul class="metcon-movements">' + movements.map(([reps,movement,cue])=>'<li><span class="reps">'+reps+'</span><span><span class="movement">'+movement+'</span> <span class="rx">('+cue+')</span></span></li>').join('') + '</ul>' +
+        note('Aim for 5-6/10 effort initially. No race or all-out finish. Duration increases are optional; use the shorter duration after a demanding shift. No loaded step-ups, timed cleans, or automatic increases in weight.') + '</div></section>';
     }
     function getDayContent(w, d) {
       const n = w.num, optional = n===12 ? '<p>All accessory work is optional during progress review week.</p>' : '';
       let body = note('<strong>Week ' + n + ' · Day ' + (d+1) + '.</strong> ' + w.effort + '. Barbell weights include the bar; dumbbell weights are per hand. Main-lift numbers are targets, not obligations.');
       body += section('Warm-up', list(['5-8 minutes of easy walking or cycling. Row only if gripping and pulling feel comfortable.',
         'Comfortable mobility for the movements ahead. Do not force an elbow, shoulder, or front-rack position.',
-        d===0 || d===1 || d===4 ? 'Before each main lift, use 2-4 short, progressively heavier practice sets. Reduce repetitions as weight rises; warm-ups should not tire you.' : 'Use comfortable unloaded movement practice. No tiring high-repetition warm-ups.']));
+        d===0 || d===1 || d===4 ? 'Use the ramp-up sets in each strength table. They should feel easy; do not repeat extra high-repetition warm-ups. Use a lighter training bar if a 45 lb bar is too heavy.' : 'Use comfortable unloaded movement practice. No tiring high-repetition warm-ups.']));
       if (d===0) {
         body += mainLift(w,'bench');
-        body += section('Supported pulling & light accessories', optional + list([
-          'Chest-supported DB row: one easy warm-up, then ' + accessorySets(n,2) + ' × 10-12. Week 1: 15 lb per hand. Use 20 lb only if clearly easy and comfortable. Keep the chest supported, wrists comfortable, and lower steadily. Build to 2 × 15 before adding weight.',
+        body += section('Supported pulling & light accessories', optional + '<div class="accessory-rounds">Complete the sets listed for each movement; these are not extra circuit rounds. Rest 60-90 seconds between accessory sets. Leave 3-4 good repetitions available.</div>' + list([
+          'Chest-supported DB row: warm up with 8 repetitions at 10 lb per hand (or lighter), then ' + accessorySets(n,2) + ' × 10-12. Week 1: 15 lb per hand. Use 20 lb only if clearly easy and comfortable. Keep the chest supported, wrists comfortable, and lower steadily. Build to 2 × 15 before adding weight.',
           'Incline DB press: ' + accessorySets(n, n>=3 ? 2 : 1) + ' × 10-12 at a trial load of 15-20 lb per hand. From Week 3, the second set is optional and only added if needed and well tolerated.',
           'Light band pull-aparts: ' + accessorySets(n,1) + ' × 12-15. Comfortable movement, no forced stretch.'
         ]));
         body += conditioning(w,0);
       } else if (d===1) {
         body += mainLift(w,'squat') + mainLift(w,'deadlift');
-        body += section('Lower-body accessory & core', optional + list([
+        body += section('Lower-body accessory & core', optional + '<div class="accessory-rounds">Complete the sets listed for each movement; these are not extra circuit rounds. Rest 60-90 seconds between accessory sets. Leave 3-4 good repetitions available.</div>' + list([
           n===9 || n===10 ? 'Optional front squat instead of split squat: 2 × 5 at 65 lb total. Increase only up to 75 lb if easy, the front rack is comfortable, and Tuesday recovery remains good. Omit if catching or the front rack provokes elbow symptoms.' :
             'Supported split squat: ' + (recovery(n) || n===11 ? '1' : '1-2') + ' × 8 each leg, bodyweight. Use support. Build to 2 × 12 before considering 5-10 lb dumbbells per hand. No front squats in Week 11.',
           'Dead bug: ' + accessorySets(n,2) + ' × 6-8 each side. Move slowly and keep the trunk controlled.'
         ]));
       } else if (d===2) {
-        body += section('Optional clean technique', list(['Use PVC or a light training bar for 4-6 sets of 2 technique repetitions, with a full reset. Keep this easy; a standard 45 lb bar is appropriate only if genuinely easy and comfortable.',
+        body += section('Optional clean technique', list(['Clean technique: start with 2 sets of 2 using PVC, then 2 sets of 2 with a light training bar only if comfortable. Optionally add 2 more sets of 2 at that same easy load. Rest 60-90 seconds. A standard 45 lb bar is appropriate only if genuinely easy; no clean percentage is assumed.',
           'No heavy clean progression or clean max is prescribed. Barbell strength estimates do not establish clean capacity.',
           'If the catch reproduces elbow discomfort, omit catches. Walk or cycle instead. Do not automatically replace them with swings.']));
         body += section('Easy aerobic work', '<p>15-25 minutes of walking or cycling at a conversational pace, followed by comfortable mobility. Shorten or skip if fatigued. This should help recovery.</p>');
       } else if (d===3) {
         body += section('Optional recovery day', '<p>Rest completely, or walk/cycle easily for 15-25 minutes. No missed workout to make up. Choose rest after demanding shifts or poor sleep.</p>');
-        body += section('Optional core & arms', optional + list([
+        body += section('Optional core & arms', optional + '<div class="accessory-rounds">Complete the sets listed for each movement; these are not extra circuit rounds. Rest 60-90 seconds between accessory sets. Leave 3-4 good repetitions available.</div>' + list([
           'Side plank: ' + accessorySets(n,2) + ' × 15-30 seconds each side. Use a bent-knee version or omit if supporting yourself irritates the shoulder or elbow.',
           'Optional DB curl: ' + accessorySets(n,1) + ' × 12 at a trial load of 5-10 lb per hand. Choose the comfortable grip. Add a second set only after repeated good tolerance; no separate hammer-curl prescription.',
           'Optional rope pushdown: ' + accessorySets(n,1) + ' × 12-15, light enough to leave 3-4 repetitions available. Add a second set only if comfortable. Do not force the elbow into lockout.',
