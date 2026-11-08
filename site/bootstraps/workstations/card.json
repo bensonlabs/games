@@ -1,0 +1,7 @@
+{
+  "title": "Workstations",
+  "emoji": "💻",
+  "order": 10,
+  "cta": "Open →",
+  "description": "Bootstraps for Windows, macOS, Fedora and Ubuntu, WSL included: rebuild a dev machine from documented scripts."
+}

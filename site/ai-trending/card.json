@@ -1,0 +1,8 @@
+{
+  "title": "AI Trending",
+  "emoji": "🤖",
+  "order": 30,
+  "description": "Daily analysis of trending AI/ML repositories on GitHub with ranked results, category filtering, and repository scoring.",
+  "cta": "View →",
+  "header": "no"
+}

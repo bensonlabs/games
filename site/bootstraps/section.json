@@ -1,0 +1,8 @@
+{
+  "title": "Bootstraps",
+  "emoji": "🧰",
+  "order": 100,
+  "cta": "Open →",
+  "description": "Rebuild a workstation from a clean install: Windows, macOS, Fedora, Ubuntu and WSL.",
+  "intro": "Guides for rebuilding a workstation from a clean install."
+}

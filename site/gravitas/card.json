@@ -1,0 +1,7 @@
+{
+  "title": "Gravitas",
+  "emoji": "🔭",
+  "order": 10,
+  "description": "High-fidelity N-body gravity simulator with real-time orbital projection, procedural ambient audio, and a glassmorphic telemetry dashboard.",
+  "cta": "Launch →"
+}

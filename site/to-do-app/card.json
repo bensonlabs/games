@@ -1,0 +1,8 @@
+{
+  "title": "Neon To-Do",
+  "emoji": "✅",
+  "order": 50,
+  "description": "Full-stack todo app backed by Neon Postgres. Create, complete, filter, and delete tasks with real-time persistence — no signup required.",
+  "cta": "Open →",
+  "link": "https://todo-app-l3m0.onrender.com"
+}
