@@ -9,6 +9,9 @@
   (their user-level `~/.claude/CLAUDE.md`), never from this file.
 - **Core rules** and **conventions** (the next two blocks) come from the architectureOS repo and are
   the same in every project built from it. To change one, change it there (core rule 12).
+- **Core rules not used here** (in the project rules) lists any core rule this project can't use,
+  with the reason. Skip only those, and only while the reason holds. A rule that seems not to fit
+  but isn't listed still applies: ask the person rather than skip it.
 - **Project rules** (at the bottom) belong to this project. Write each one in three parts: when it
   fires (a table of triggers), how to do it (files, commands), and a decision shortcut for the
   usual edge cases. Give non-obvious rules a date and who decided ("owner decision, 2026-11-07").
@@ -174,6 +177,17 @@ Doc (where each convention came from): `conventions.md`.
 - Lifecycle stage (experiment, project, maintained, product, archived): project. A
   personal games collection with one user; split out of the blog on 2026-11-07.
 
+### Core rules not used here
+
+- 1 (check what exists before building new surface): adding games is what this repo is for; the
+  new-surface reminder is off (`newSurface` is empty).
+- 4 (cite where behavior comes from): the games implement no outside spec; their mechanics are design.
+- 5 (don't invent rules): a game's limits and defaults are design choices, not rules that need a source.
+- 9 (access on the server): the games are static files; there is no server.
+
+Rule 11 still applies: games keep saved progress in the player's browser (see the Games table).
+Listed 2026-11-07 (Justin's choice of how rules fit a project; architectureOS ADR 5).
+
 ### Games
 
 | When | Do |
@@ -181,6 +195,7 @@ Doc (where each convention came from): `conventions.md`.
 | Adding or changing a game | Keep it a standalone page in `games/<slug>/`: its own complete HTML document, no front matter, no site header (`bl-nav`). Give it metadata as `docs/GAME_METADATA.md` describes; `docs/AGENT_PROMPT_ADDENDUM.md` is the brief for building one. |
 | A game needs a file the site shouldn't publish (dev scripts, sources) | Add a glob to the game's `.publishignore`. Docs, Rust, TOML, TypeScript, shell scripts, lockfiles, package and metadata files are never published anyway. |
 | Adding images, sounds or fonts | No published file may be over 750 KB: size images to how they're drawn. |
+| Changing how a game saves progress (core rule 11) | Keep existing saves loading: read the old format or migrate it. Never silently reset a player's saved progress or high scores. |
 | The dungeon crawler | Its build output (`index.html`, `assets/`) is made by `tools/pack.py` and never committed. Vite's `base` must stay `/projects/games/dungeon-crawler/`. |
 
 Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies every rule above.
