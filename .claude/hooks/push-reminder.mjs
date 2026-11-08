@@ -8,7 +8,9 @@
 //   node .claude/hooks/push-reminder.mjs --install          make it this clone's git pre-push hook
 //   node .claude/hooks/push-reminder.mjs                    check what the current branch would push
 //   node .claude/hooks/push-reminder.mjs --base <ref> [--head <ref>]   check a range (in CI, say)
-// As a pre-push hook, git passes the pushed refs on stdin.
+// As a pre-push hook, git passes the pushed refs on stdin; there it is silent unless it has a
+// reminder. Run by hand or in CI, it also says when there is nothing to remind about. In GitHub
+// Actions each reminder is also printed as a warning annotation (.github/workflows/reminders.yml).
 import { execFileSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -29,12 +31,13 @@ function tryGit(root, args) {
 }
 
 function parseArgs(argv) {
-  const args = { install: false, base: null, head: 'HEAD' };
+  const args = { install: false, base: null, head: 'HEAD', hook: false };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--install') args.install = true;
     else if (argv[i] === '--base') args.base = argv[++i];
     else if (argv[i] === '--head') args.head = argv[++i];
-    // git passes the remote's name and URL as arguments; they aren't needed.
+    // git passes the remote's name and URL as arguments: their presence means it runs as a hook.
+    else if (!argv[i].startsWith('--')) args.hook = true;
   }
   return args;
 }
@@ -102,9 +105,9 @@ const sample = (items) => (items.length > 3 ? `${items.slice(0, 3).join(', ')} a
 
 function check(root, args) {
   const config = loadConfig(root);
-  if (!config) return [];
+  if (!config) return { reminders: [], checked: 0, configured: false };
   const commits = pushedCommits(root, args).map((sha) => commitInfo(root, sha));
-  if (!commits.length) return [];
+  if (!commits.length) return { reminders: [], checked: 0, configured: true };
   const answered = (key) => commits.some((c) => new RegExp(`^${key}:\\s*\\S`, 'mi').test(c.message));
   const reminders = [];
 
@@ -134,7 +137,7 @@ function check(root, args) {
     reminders.push(`Code changed but no doc did (${sample(code)}). Update the doc that describes it in the same commit,`
       + ' or answer it in a commit message: "Docs-Impact: none - <reason>".');
   }
-  return reminders;
+  return { reminders, checked: commits.length, configured: true };
 }
 
 function main() {
@@ -144,8 +147,18 @@ function main() {
     console.log(install(root));
     return;
   }
-  const reminders = check(root, args);
-  if (!reminders.length) return;
+  const { reminders, checked, configured } = check(root, args);
+  if (!reminders.length) {
+    if (args.hook) return; // a clean push stays quiet
+    if (!configured) console.log(`${MARK}: no .claude/hooks/reminders.config.json, so nothing was checked.`);
+    else if (!checked) console.log(`${MARK}: no commits to check.`);
+    else console.log(`${MARK}: nothing to remind about (checked ${checked} commit${checked === 1 ? '' : 's'}).`);
+    return;
+  }
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    const escape = (text) => text.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+    for (const reminder of reminders) console.log(`::warning title=Push reminder::${escape(reminder)}`);
+  }
   process.stderr.write(`\n${MARK} (it never blocks the push):\n${reminders.map((r) => `- ${r}`).join('\n')}\n\n`);
 }
 

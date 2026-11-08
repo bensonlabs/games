@@ -32,7 +32,10 @@ A line in any of the pushed commits answers for the whole push. It always exits 
   ran in): `node .claude/hooks/push-reminder.mjs --install`. It won't overwrite an existing
   `pre-push` hook; it prints the line to add instead.
 - **Run it by hand** to see what the current branch would push: `node .claude/hooks/push-reminder.mjs`.
-- **In CI**, check a range: `node .claude/hooks/push-reminder.mjs --base origin/main`.
+  It says so when there's nothing to remind about; as a git hook it stays quiet then.
+- **In CI**: `.github/workflows/reminders.yml` runs it on every pull request and shows each reminder
+  as a warning on the PR (never a failure). It covers clones without the hook and GitHub's web
+  editor. Don't want it? Delete the file; sync leaves it out. By hand: `--base origin/main`.
 
 ## Setting them up
 
