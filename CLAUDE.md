@@ -9,6 +9,9 @@
   (their user-level `~/.claude/CLAUDE.md`), never from this file.
 - **Core rules** and **conventions** (the next two blocks) come from the architectureOS repo and are
   the same in every project built from it. To change one, change it there (core rule 12).
+- **Core rules not used here** (in the project rules) lists any core rule this project can't use,
+  with the reason. Skip only those, and only while the reason holds. A rule that seems not to fit
+  but isn't listed still applies: ask the person rather than skip it.
 - **Project rules** (at the bottom) belong to this project. Write each one in three parts: when it
   fires (a table of triggers), how to do it (files, commands), and a decision shortcut for the
   usual edge cases. Give non-obvious rules a date and who decided ("owner decision, 2026-11-07").
