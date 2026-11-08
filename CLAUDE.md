@@ -202,6 +202,15 @@ Listed 2026-11-07 (Justin's choice of how rules fit a project; architectureOS AD
 
 Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies every rule above.
 
+### Files shared with bensonlabs/projects
+
+- `tools/next_version.py` and `tools/html_checks.py` are identical in both repos, and so are three
+  functions in `tools/pack.py` (`read_publishignore`, `publishable`, `write_release`).
+  `.github/workflows/release.yml` and `ci.yml` differ only in the lines marked "games only" and
+  their names. Each says so at its top. Change one, and make the same change in the other repo.
+- Why two copies rather than a shared package: the repos are small and separate on purpose (site
+  review P11, owner default 2026-11-08).
+
 ### Commands
 
 On Windows, `python3` isn't on the PATH: run the same commands with `py`.

@@ -51,6 +51,7 @@ from html_checks import Page
 GAMES_DIR = registry.GAMES_DIR
 DIST = registry.REPO_ROOT / "dist"
 OUT = DIST / "projects" / "games"
+COMPONENT = "games"  # the pack is <COMPONENT>-<version>.tar.gz
 PLACEHOLDER = "[] /* games list: filled in by tools/pack.py */"
 NOSCRIPT_PLACEHOLDER = "<!-- games list without JavaScript: filled in by tools/pack.py -->"
 MAX_FILE_BYTES = 750 * 1024
@@ -63,26 +64,31 @@ NEVER_PUBLISHED_SUFFIXES = {".md", ".rs", ".toml", ".ts", ".tsx", ".sh", ".lock"
 NEVER_PUBLISHED_NAMES = {"package.json", "package-lock.json", "tsconfig.json",
                          "game.json", "metadata.json", "index.source.html"}
 NEVER_PUBLISHED_DIRS = {"node_modules", "dist"}
+PUBLISHED_MARKDOWN: set[str] = set()  # no Markdown page is published from games
 # Written into node_modules after a successful `npm ci`: what it was installed from.
 INSTALL_MARKER = ".pack-installed-from"
 SITE = "https://bensonlabs.org"
 CATALOGUE_PATHS = {"/projects/games/", "/projects/games", "/projects/games/index.html"}
 
 
-def read_publishignore(game_dir: Path) -> list[str]:
-    path = game_dir / ".publishignore"
+# Shared by bensonlabs/games and bensonlabs/projects: keep this function identical in both tools/pack.py.
+def read_publishignore(folder: Path) -> list[str]:
+    path = folder / ".publishignore"
     if not path.is_file():
         return []
     lines = (line.strip() for line in path.read_text(encoding="utf-8").splitlines())
     return [line for line in lines if line and not line.startswith("#")]
 
 
-def publishable(game_dir: Path, path: Path, ignore: list[str]) -> bool:
-    rel = path.relative_to(game_dir)
+# Shared by bensonlabs/games and bensonlabs/projects: keep this function identical in both tools/pack.py.
+def publishable(folder: Path, path: Path, ignore: list[str]) -> bool:
+    rel = path.relative_to(folder)
     if any(part.startswith(".") for part in rel.parts):
         return False
     if any(part in NEVER_PUBLISHED_DIRS for part in rel.parts[:-1]):
         return False
+    if path.name in PUBLISHED_MARKDOWN:
+        return True
     if path.suffix.lower() in NEVER_PUBLISHED_SUFFIXES or path.name in NEVER_PUBLISHED_NAMES:
         return False
     return not any(fnmatch.fnmatch(rel.as_posix(), pattern) for pattern in ignore)
@@ -285,10 +291,11 @@ def check(games: list[dict]) -> list[str]:
     return errors
 
 
+# Shared by bensonlabs/games and bensonlabs/projects: keep this function identical in both tools/pack.py.
 def write_release(version: str) -> Path:
     """Pack OUT reproducibly (sorted entries, fixed times and modes): the same files
     always give the same sha256."""
-    name = f"games-{version}.tar.gz"
+    name = f"{COMPONENT}-{version}.tar.gz"
     files = sorted((p for p in OUT.rglob("*") if p.is_file()), key=lambda p: p.relative_to(OUT).as_posix())
     buffer = io.BytesIO()
     with tarfile.open(fileobj=buffer, mode="w", format=tarfile.PAX_FORMAT) as tar:

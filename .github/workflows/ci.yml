@@ -1,4 +1,7 @@
 name: Games
+# shared with bensonlabs/projects (.github/workflows/ci.yml): change both. Only the lines
+# marked "games only" and the workflow's name differ.
+#
 # Pull requests; pushes to main run the same checks in release.yml before releasing. Also
 # lints the workflow files (actionlint, with shellcheck on their scripts).
 on:
@@ -14,16 +17,16 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7 # games only
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: games/dungeon-crawler/package-lock.json
       - name: Test the tools
         run: python3 -m unittest discover -s tools -p 'test_*.py'
-      - name: Build and pack every game (as a release would)
+      - name: Build and pack everything (as a release would)
         run: python3 tools/pack.py
-      - name: Check the dungeon crawler build
+      - name: Check the dungeon crawler build # games only
         run: python3 tools/check_dungeon_build.py
       - name: Packing changes no committed file
         run: git diff --exit-code
