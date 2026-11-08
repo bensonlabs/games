@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Decide whether a fresh pack is a new release, and name it.
 
-Shared by bensonlabs/games and bensonlabs/projects (tools/next_version.py): the two copies are
-identical, so change both.
+Shared by bensonlabs/games, bensonlabs/projects and bensonlabs/bootstraps (tools/next_version.py):
+the copies are identical, so change all three.
 
     python3 tools/next_version.py --packed dist/<name>-v0.0.0.tar.gz --latest v1.0.3 --published-sha <sha>
 
