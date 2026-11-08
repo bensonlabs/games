@@ -1,0 +1,35 @@
+mq_js_bundle.js is miniquad's JavaScript loader: it starts lumentrace.wasm and
+gives it WebGL, input and audio. It is an unchanged copy of the file this game
+used to load from someone else's site.
+
+Source:  https://not-fl3.github.io/miniquad-samples/mq_js_bundle.js
+         (github.com/not-fl3/miniquad-samples, commit e0ed275ba580202585d7feced3c4222812bcbb23,
+         2024-09-12, "update mq_js_bundle")
+Fetched: 2026-11-08, byte for byte
+sha256:  f4189c03de0b10cef3b710bdcadb22df7b835ccab5de52a3714e896e4fc48cd7
+License: miniquad (github.com/not-fl3/miniquad) is licensed "MIT OR Apache-2.0";
+         this copy is used under the MIT license, whose text follows.
+
+---
+
+MIT/X Consortium License
+
+@ 2019-2020 Fedor Logachev <not.fl3@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
