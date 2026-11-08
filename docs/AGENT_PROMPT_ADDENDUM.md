@@ -6,7 +6,9 @@ HTML document, styles, and scripts. Do not add Jekyll front matter, a site-heade
 snippet, canonical markers, or navigation auto-hide machinery. No screen corner
 is reserved for the website: place game controls where they work best on desktop
 and mobile. Preserve game navigation, fullscreen behavior, audio, and saved state.
-An optional back-to-games link is allowed. Choose CSP for your actual game assets.
+An optional back-to-games link is allowed. Choose CSP for your actual game assets;
+in a `<meta>` CSP leave out `frame-ancestors`: browsers ignore it there and log an
+error on every page load.
 
 Author one `bl-game-meta` comment in the head, with `title`, `emoji`, `order: 999`,
 and a one-line `description`. When applicable, end the description with

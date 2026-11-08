@@ -1,8 +1,10 @@
 # Echoes of Eternity
 
-Echoes of Eternity is now a static browser game designed to run directly from this repository on GitHub Pages.
+Echoes of Eternity is a static browser game: plain HTML, CSS and JavaScript, with no build step.
+It's published at https://bensonlabs.org/projects/games/echoes-of-eternity/ as part of the games
+release, which `tools/pack.py` packs (this readme isn't published).
 
-## Hosting model
+## How it runs
 
 - No backend server
 - No database
@@ -11,12 +13,9 @@ Echoes of Eternity is now a static browser game designed to run directly from th
 
 ## Files
 
-- `projects/games/echoes-of-eternity/index.html`
-- `projects/games/echoes-of-eternity/style.css`
-- `projects/games/echoes-of-eternity/main.js`
-- `projects/games/echoes-of-eternity/index.v2.html` - Alternate standalone prototype using CDN-loaded Three.js, Matter.js, TensorFlow.js, Tone.js, and Simplex Noise.
-
-`index.html` is the GitHub Pages game linked from the games hub. `index.v2.html` is an experimental alternate version and is not the hub entrypoint.
+- `index.html` - the game page, linked from the games catalogue
+- `style.css`
+- `main.js`
 
 ## Controls
 
