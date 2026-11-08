@@ -9,9 +9,12 @@ What a release contains:
   TOML, TypeScript, shell scripts, lockfiles, package and metadata files, hidden
   files, and anything listed in the game's own .publishignore (glob patterns);
 - for a game with a package.json, only its npm build output (dist/);
-- games/index.html, the catalogue, with the games list written in.
+- games/index.html, the catalogue, with the games list written in twice: as data
+  for the script that draws the cards, and as plain links for visitors without
+  JavaScript.
 
-No published file may be over 750 KB, and no game over 1 MB in all.
+No published file may be over 750 KB, and no game over 1 MB in all. Every page
+needs a <meta name="description">.
 
 A game with a package.json is built with `npm ci` and `npm run build`. Locally,
 `npm ci` is skipped while the game's node_modules was installed from its current
@@ -27,6 +30,7 @@ import argparse
 import fnmatch
 import gzip
 import hashlib
+import html
 import io
 import json
 import os
@@ -44,6 +48,7 @@ GAMES_DIR = registry.GAMES_DIR
 DIST = registry.REPO_ROOT / "dist"
 OUT = DIST / "projects" / "games"
 PLACEHOLDER = "[] /* games list: filled in by tools/pack.py */"
+NOSCRIPT_PLACEHOLDER = "<!-- games list without JavaScript: filled in by tools/pack.py -->"
 MAX_FILE_BYTES = 750 * 1024
 # Source: site review E1, approved by Justin 2026-11-08. Sparky's Run had grown to 1.3 MB of
 # PNGs drawn at a third of their size; the limit stops a game creeping back up.
@@ -132,15 +137,30 @@ def pack_static_game(game_dir: Path, dest: Path) -> None:
             copy(path, dest / path.relative_to(game_dir))
 
 
+def noscript_list(games: list[dict]) -> str:
+    """The games as plain links (the same list the cards show), for visitors and crawlers
+    that don't run JavaScript. Source: site review L10, approved by Justin 2026-11-08.
+
+    The blog runs the catalogue's body through Liquid, so braces are written as character
+    references: no title or description can turn into a Liquid tag."""
+    def escape(value: str) -> str:
+        return html.escape(value).replace("{", "&#123;").replace("}", "&#125;")
+    return "\n      ".join(
+        f'<li><a href="{escape(game["path"])}">{escape(game["title"])}</a><br>{escape(game["description"])}</li>'
+        for game in games)
+
+
 def write_catalogue(games: list[dict]) -> None:
     template = (GAMES_DIR / "index.html").read_text(encoding="utf-8")
-    if template.count(PLACEHOLDER) != 1:
-        sys.exit("games/index.html must contain the games-list placeholder exactly once")
+    for placeholder in (PLACEHOLDER, NOSCRIPT_PLACEHOLDER):
+        if template.count(placeholder) != 1:
+            sys.exit(f"games/index.html must contain {placeholder!r} exactly once")
     # Compact JSON, as Jekyll's jsonify wrote it before the split, with "</" escaped
     # so no title or description can end the <script> early.
     data = json.dumps(games, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    page = template.replace(PLACEHOLDER, data).replace(NOSCRIPT_PLACEHOLDER, noscript_list(games))
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "index.html").write_text(template.replace(PLACEHOLDER, data), encoding="utf-8", newline="\n")
+    (OUT / "index.html").write_text(page, encoding="utf-8", newline="\n")
 
 
 def game_sizes() -> dict[str, int]:
@@ -167,13 +187,21 @@ def check(games: list[dict]) -> list[str]:
         size = path.stat().st_size
         if size > MAX_FILE_BYTES:
             errors.append(f"{rel}: {size // 1024} KB, over the {MAX_FILE_BYTES // 1024} KB limit for one file")
-        if path.suffix == ".html" and "/" in rel:  # a game page, not the catalogue
-            text = path.read_text(encoding="utf-8", errors="replace")
+        if path.suffix != ".html":
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        page = Page(text)
+        # Source: site review L8, approved by Justin 2026-11-08: search results and link previews
+        # show it; the card's first sentence (without "Made by ...") is the usual choice.
+        if len(page.descriptions) != 1 or not page.descriptions[0]:
+            found = f"found {len(page.descriptions)}" if len(page.descriptions) != 1 else "it's empty"
+            errors.append(f'{rel}: needs exactly one <meta name="description"> with text ({found}); for a game, '
+                          "the first sentence of its card's description, in index.source.html if it has one")
+        if "/" in rel:  # a game page, not the catalogue
             if text.startswith("---\n"):
                 errors.append(f"{rel}: games are standalone pages: no front matter")
-            header = Page(text).site_header
-            if header:
-                errors.append(f"{rel}: games are standalone pages: no site header (found {header[0]})")
+            if page.site_header:
+                errors.append(f"{rel}: games are standalone pages: no site header (found {page.site_header[0]})")
     return errors
 
 

@@ -55,6 +55,18 @@ duplicate comment blocks or field names, malformed JSON/comments, non-string
 text fields, null values in JSON, and non-integer orders fail validation. An
 ignored legacy source comment is still checked for malformed/duplicate syntax.
 
+## Meta description
+
+Every published page also needs exactly one `<meta name="description">` in its
+`<head>`: search results and link previews show it, and `tools/pack.py` fails
+a page without one. Use the first sentence of the card's description (what you
+do in the game), without "Made by ...". Write it in the page's own source:
+`index.source.html` for a compiled game, otherwise the page itself; nothing
+adds it at pack time. Extra pages in a game's folder (other versions) need one
+too, and so does the catalogue.
+
+## Standalone pages
+
 Games are standalone documents with no front matter or shared header. Do not add
 snippets, canonical markers, auto-hide scripts, or space for a site menu button.
 Game controls, navigation, audio, fullscreen, and saved state remain game-owned.

@@ -47,7 +47,9 @@ By hand, from anywhere (GitHub's website works, phone included):
 1. Add `games/<slug>/index.html`: one standalone page with no front matter and no site header.
 2. For the card, put a `bl-game-meta` comment in its `<head>` (`docs/GAME_METADATA.md`). Without
    one, the card uses the page's `<title>` and its description.
-3. Commit it to `main`.
+3. Give the page a `<meta name="description">` with the first sentence of what you do in the
+   game. Every published page needs one; the release fails without it.
+4. Commit it to `main`.
 
 ## What a release contains
 
@@ -56,7 +58,8 @@ Everything a browser needs to play each game, and nothing else:
 - each game folder, minus Markdown, Rust, TOML, TypeScript, shell scripts, lockfiles, package
   and metadata files, hidden files, and anything listed in the game's `.publishignore`;
 - for a game with a `package.json`, only its build output;
-- the catalogue, with the games list written in.
+- the catalogue, with the games list written in: as cards drawn by a script, and as plain links
+  for visitors without JavaScript.
 
 No published file may be over 750 KB, and no game over 1 MB in all. Releases are reproducible:
 the same files always give the same sha256.

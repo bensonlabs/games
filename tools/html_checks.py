@@ -15,12 +15,14 @@ def _is_header_name(name: str) -> bool:
 
 
 class Page(HTMLParser):
-    """Element ids, linked scripts and stylesheets, and any trace of the blog's site header."""
+    """Element ids, linked scripts and stylesheets, meta descriptions, and any trace of the
+    blog's site header."""
 
     def __init__(self, text: str):
         super().__init__(convert_charrefs=True)
         self.ids: dict[str, int] = {}
         self.assets: list[str] = []
+        self.descriptions: list[str] = []
         self.site_header: list[str] = []
         self.feed(text)
         self.close()
@@ -30,6 +32,8 @@ class Page(HTMLParser):
         element_id = attrs.get("id", "")
         if element_id:
             self.ids[element_id] = self.ids.get(element_id, 0) + 1
+        if tag == "meta" and attrs.get("name", "").lower() == "description":
+            self.descriptions.append(attrs.get("content", "").strip())
         for name in [element_id, *attrs.get("class", "").split()]:
             if name and _is_header_name(name):
                 self.site_header.append(f'<{tag}> "{name}"')

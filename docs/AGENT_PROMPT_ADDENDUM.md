@@ -15,6 +15,8 @@ never `@latest` or an unversioned URL).
 Author one `bl-game-meta` comment in the head, with `title`, `emoji`, `order: 999`,
 and a one-line `description`. When applicable, end the description with
 `Made by <model> in <tool> on <hardware>.` Do not guess a curated sort position.
+Also give the page a `<meta name="description">` with the description's first
+sentence, without "Made by ...": every published page needs one.
 For compiled games use `game.json`, as described in `GAME_METADATA.md`. Keep Vite's
 source input and deployed base path; generated HTML is output, not metadata input.
 

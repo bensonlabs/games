@@ -31,8 +31,12 @@ asking, except where they say to show Justin something.
    Pick an emoji that fits. Write the description from the game itself; end it with
    "Made by <model> in <tool>." only when Justin says or the file shows how it was made. Keep
    `order: 999` unless he gives a place. Show him the card in one line; change it if he asks.
+
+   Unless the page already has one, also put the description's first sentence (without "Made
+   by ...") in a `<meta name="description" content="...">` in its `<head>`: search results
+   and link previews show it. Every published page needs one, extra pages included.
 4. **Check it**: `python3 tools/pack.py` must pass. It catches a missing page, a site header, front
-   matter, files over 750 KB and games over 1 MB.
+   matter, a page without a meta description, files over 750 KB and games over 1 MB.
 5. **Commit and push** only the game's folder: `git add games/<slug>` then a commit "Add <title>"
    and `git push` to `main`. If the push reminder says something, answer it in the commit message as
    it asks.

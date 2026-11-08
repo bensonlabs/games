@@ -1,6 +1,7 @@
 """Tests for tools/pack.py: what a release contains, the catalogue, the checks and the release file."""
 import contextlib
 import hashlib
+import html.parser
 import io
 import json
 import os
@@ -12,6 +13,27 @@ from unittest.mock import patch
 
 import html_checks
 import pack
+
+
+# A page the checks accept: every published page needs one meta description.
+DESCRIBED = '<meta name="description" content="Steer a ship.">'
+
+
+class Links(html.parser.HTMLParser):
+    """The (href, text) of each link in a page."""
+
+    def __init__(self, text):
+        super().__init__(convert_charrefs=True)
+        self.links = []
+        self.feed(text)
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.links.append([dict(attrs).get('href'), ''])
+
+    def handle_data(self, data):
+        if self.links and self.lasttag == 'a':
+            self.links[-1][1] += data
 
 
 def make(root, names, content='x'):
@@ -45,26 +67,41 @@ class PublishRules(unittest.TestCase):
 
 
 class Catalogue(unittest.TestCase):
-    def test_games_list_is_written_in_and_cannot_close_the_script(self):
-        games = [{'title': 'A</script>', 'description': 'Dark fantasy ⚔️', 'emoji': '🎮', 'path': '/projects/games/a/'}]
+    TEMPLATE = ('<noscript><ul>' + pack.NOSCRIPT_PLACEHOLDER + '</ul></noscript>'
+                '<script>const GAMES = ' + pack.PLACEHOLDER + ';</script>')
+
+    def write(self, games, template=TEMPLATE):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            make(root, ['games/index.html'], '<script>const GAMES = ' + pack.PLACEHOLDER + ';</script>')
+            make(root, ['games/index.html'], template)
             with patch.object(pack, 'GAMES_DIR', root / 'games'), patch.object(pack, 'OUT', root / 'out'):
                 pack.write_catalogue(games)
-            text = (root / 'out' / 'index.html').read_text(encoding='utf-8')
+            return (root / 'out' / 'index.html').read_text(encoding='utf-8')
+
+    def test_games_list_is_written_in_and_cannot_close_the_script(self):
+        games = [{'title': 'A</script>', 'description': 'Dark fantasy ⚔️', 'emoji': '🎮', 'path': '/projects/games/a/'}]
+        text = self.write(games)
         self.assertEqual(text.count('</script>'), 1)
-        data = text[len('<script>const GAMES = '):-len(';</script>')]
+        data = text.split('<script>const GAMES = ')[1][:-len(';</script>')]
         self.assertEqual(json.loads(data), games)
         self.assertIn('⚔️', data)  # written as-is, as Jekyll's jsonify did
 
-    def test_template_must_have_the_placeholder(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            make(root, ['games/index.html'], '<script>const GAMES = [];</script>')
-            with patch.object(pack, 'GAMES_DIR', root / 'games'), patch.object(pack, 'OUT', root / 'out'):
-                with self.assertRaises(SystemExit):
-                    pack.write_catalogue([])
+    def test_visitors_without_javascript_get_a_link_to_every_game(self):
+        games = [{'title': 'A</script>', 'description': 'Uses {{ liquid }} & <b>', 'emoji': '🎮',
+                  'path': '/projects/games/a/'},
+                 {'title': 'B', 'description': 'Second.', 'emoji': '🚀', 'path': '/projects/games/b/'}]
+        text = self.write(games)
+        listed = text.split('<ul>')[1].split('</ul>')[0]
+        self.assertEqual(Links(listed).links, [['/projects/games/a/', 'A</script>'], ['/projects/games/b/', 'B']])
+        self.assertNotIn('<b>', listed)
+        self.assertNotIn('{{', listed)  # the blog runs the catalogue's body through Liquid
+        self.assertIn('Uses &#123;&#123; liquid &#125;&#125; &amp; &lt;b&gt;', listed)
+
+    def test_template_must_have_both_placeholders(self):
+        for template in ('<script>const GAMES = [];</script>' + pack.NOSCRIPT_PLACEHOLDER,
+                         '<script>const GAMES = ' + pack.PLACEHOLDER + ';</script>'):
+            with self.subTest(template=template), self.assertRaises(SystemExit):
+                self.write([], template)
 
 
 class Checks(unittest.TestCase):
@@ -72,10 +109,10 @@ class Checks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp) / 'dist'
             out = dist / 'projects' / 'games'
-            make(out, ['index.html', 'ok/index.html'])
-            make(out, ['nav/index.html'], '<nav id="bl-nav"></nav>')
-            make(out, ['front/index.html'], '---\nlayout: project\n---\n')
-            make(out, ['big/index.html'], 'x' * (pack.MAX_FILE_BYTES + 1))
+            make(out, ['index.html', 'ok/index.html'], DESCRIBED)
+            make(out, ['nav/index.html'], DESCRIBED + '<nav id="bl-nav"></nav>')
+            make(out, ['front/index.html'], '---\nlayout: project\n---\n' + DESCRIBED)
+            make(out, ['big/index.html'], DESCRIBED + 'x' * pack.MAX_FILE_BYTES)
             games = [{'path': f'/projects/games/{slug}/'} for slug in ('ok', 'nav', 'front', 'big', 'missing')]
             with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
                 errors = pack.check(games)
@@ -83,6 +120,22 @@ class Checks(unittest.TestCase):
         for expected in ('/projects/games/missing/', 'nav/index.html', 'front/index.html', 'big/index.html'):
             self.assertTrue(any(expected in error for error in errors), expected)
 
+    def test_every_page_needs_one_meta_description(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = Path(tmp) / 'dist'
+            out = dist / 'projects' / 'games'
+            make(out, ['index.html', 'ok/index.html'], '<head>' + DESCRIBED + '</head>')
+            make(out, ['ok/not-a-page.js'], 'const x = 1;')
+            make(out, ['none/index.html', 'ok/version-2.html'], '<head><title>No description</title></head>')
+            make(out, ['empty/index.html'], '<meta name="description" content=" ">')
+            make(out, ['two/index.html'], DESCRIBED + '<meta name="Description" content="Again.">')
+            games = [{'path': f'/projects/games/{slug}/'} for slug in ('ok', 'none', 'empty', 'two')]
+            with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
+                errors = pack.check(games)
+        self.assertEqual(sorted(error.split(':')[0] for error in errors),
+                         ['empty/index.html', 'none/index.html', 'ok/version-2.html', 'two/index.html'])
+        self.assertIn("(it's empty)", ''.join(errors))
+        self.assertIn('(found 2)', ''.join(errors))
 
     def test_flags_a_game_over_the_size_limit_for_one_game(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -116,8 +169,9 @@ class SiteHeader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp) / 'dist'
             out = dist / 'projects' / 'games'
-            make(out, ['index.html'])
-            make(out, ['ok/index.html'], '<html><body><!-- not a bl-nav --><canvas></canvas></body></html>')
+            make(out, ['index.html'], DESCRIBED)
+            make(out, ['ok/index.html'], '<html><head>' + DESCRIBED + '</head>'
+                                         '<body><!-- not a bl-nav --><canvas></canvas></body></html>')
             with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
                 self.assertEqual(pack.check([{'path': '/projects/games/ok/'}]), [])
 
