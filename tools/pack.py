@@ -71,7 +71,8 @@ SITE = "https://bensonlabs.org"
 CATALOGUE_PATHS = {"/projects/games/", "/projects/games", "/projects/games/index.html"}
 
 
-# Shared by bensonlabs/games and bensonlabs/projects: keep this function identical in both tools/pack.py.
+# Shared by bensonlabs/games, bensonlabs/projects and bensonlabs/bootstraps: keep this function
+# identical in all three tools/pack.py.
 def read_publishignore(folder: Path) -> list[str]:
     path = folder / ".publishignore"
     if not path.is_file():
@@ -80,7 +81,8 @@ def read_publishignore(folder: Path) -> list[str]:
     return [line for line in lines if line and not line.startswith("#")]
 
 
-# Shared by bensonlabs/games and bensonlabs/projects: keep this function identical in both tools/pack.py.
+# Shared by bensonlabs/games, bensonlabs/projects and bensonlabs/bootstraps: keep this function
+# identical in all three tools/pack.py.
 def publishable(folder: Path, path: Path, ignore: list[str]) -> bool:
     rel = path.relative_to(folder)
     if any(part.startswith(".") for part in rel.parts):
@@ -291,7 +293,8 @@ def check(games: list[dict]) -> list[str]:
     return errors
 
 
-# Shared by bensonlabs/games and bensonlabs/projects: keep this function identical in both tools/pack.py.
+# Shared by bensonlabs/games, bensonlabs/projects and bensonlabs/bootstraps: keep this function
+# identical in all three tools/pack.py.
 def write_release(version: str) -> Path:
     """Pack OUT reproducibly (sorted entries, fixed times and modes): the same files
     always give the same sha256."""
