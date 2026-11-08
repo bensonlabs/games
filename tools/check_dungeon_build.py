@@ -3,31 +3,19 @@
 
 Run after tools/pack.py; it reads dist/projects/games/dungeon-crawler/.
 """
-from html.parser import HTMLParser
 from pathlib import Path
+
+from html_checks import Page
 
 SITE = Path(__file__).resolve().parents[1] / 'dist'
 GAME = SITE / 'projects/games/dungeon-crawler'
 
 
-class Page(HTMLParser):
-    def __init__(self, text):
-        super().__init__(convert_charrefs=True)
-        self.ids = {}; self.assets = []
-        self.feed(text)
-
-    def handle_starttag(self, tag, attrs):
-        attrs = dict(attrs)
-        if 'id' in attrs:
-            key = attrs['id']; self.ids[key] = self.ids.get(key, 0) + 1
-        if tag == 'script' and attrs.get('src'): self.assets.append(attrs['src'])
-        if tag == 'link' and attrs.get('rel') == 'stylesheet': self.assets.append(attrs['href'])
-
-
 text = (GAME / 'index.html').read_text(encoding='utf-8')
 page = Page(text)
 assert page.ids.get('root') == 1, 'React mount is missing or duplicated'
-assert not any(token in text for token in ('bl-nav', 'nav-autohide', '/src/main.tsx'))
+assert not page.site_header, f'Site header in the game: {page.site_header[:3]}'
+assert '/src/main.tsx' not in page.assets, 'The unbuilt Vite entry is still linked'
 assert not text.startswith('---\n')
 assert any(asset.endswith('.js') for asset in page.assets), 'Missing bundled JavaScript'
 assert any(asset.endswith('.css') for asset in page.assets), 'Missing bundled CSS'

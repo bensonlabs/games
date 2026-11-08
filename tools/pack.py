@@ -31,6 +31,7 @@ import tarfile
 from pathlib import Path
 
 import build_games_registry as registry
+from html_checks import Page
 
 GAMES_DIR = registry.GAMES_DIR
 DIST = registry.REPO_ROOT / "dist"
@@ -43,7 +44,6 @@ NEVER_PUBLISHED_SUFFIXES = {".md", ".rs", ".toml", ".ts", ".tsx", ".sh", ".lock"
 NEVER_PUBLISHED_NAMES = {"package.json", "package-lock.json", "tsconfig.json",
                          "game.json", "metadata.json", "index.source.html"}
 NEVER_PUBLISHED_DIRS = {"node_modules", "dist"}
-SITE_HEADER_TOKENS = ("bl-nav", "nav-autohide")
 
 
 def read_publishignore(game_dir: Path) -> list[str]:
@@ -115,8 +115,11 @@ def check(games: list[dict]) -> list[str]:
             errors.append(f"{rel}: {size // 1024} KB, over the {MAX_FILE_BYTES // 1024} KB limit for one file")
         if path.suffix == ".html" and "/" in rel:  # a game page, not the catalogue
             text = path.read_text(encoding="utf-8", errors="replace")
-            if text.startswith("---\n") or any(token in text for token in SITE_HEADER_TOKENS):
-                errors.append(f"{rel}: games are standalone pages: no front matter or site header")
+            if text.startswith("---\n"):
+                errors.append(f"{rel}: games are standalone pages: no front matter")
+            header = Page(text).site_header
+            if header:
+                errors.append(f"{rel}: games are standalone pages: no site header (found {header[0]})")
     return errors
 
 

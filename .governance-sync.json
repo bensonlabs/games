@@ -1,6 +1,6 @@
 {
   "source_repo": "https://github.com/bensonlabs/architectureOS.git",
-  "synced_commit": "cd3633a200be0e35d85238e5c1760af2fe701090",
+  "synced_commit": "89e44f6a0090e2b5b15156648d2746936e6cdd3c",
   "synced_at": "2026-11-07",
   "vars": {
     "PROJECT_NAME": "Games"
@@ -22,6 +22,8 @@
     "docs/STARTER_DOC_TEMPLATE.md": "file",
     "docs/decisions/0001-use-decision-records.md": "seed",
     "docs/decisions/TEMPLATE.md": "file",
-    "docs/feature-fit/TEMPLATE.md": "file"
+    "docs/feature-fit/TEMPLATE.md": "file",
+    ".gitattributes": "file",
+    ".github/workflows/reminders.yml": "file"
   }
 }

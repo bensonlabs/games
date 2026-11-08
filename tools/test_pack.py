@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import html_checks
 import pack
 
 
@@ -78,6 +79,28 @@ class Checks(unittest.TestCase):
         self.assertEqual(len(errors), 4, errors)
         for expected in ('/projects/games/missing/', 'nav/index.html', 'front/index.html', 'big/index.html'):
             self.assertTrue(any(expected in error for error in errors), expected)
+
+
+class SiteHeader(unittest.TestCase):
+    def test_found_by_its_elements_and_files_not_by_mentions(self):
+        mentions = ('<html><body><!-- no bl-nav here --><p>about bl-nav</p>'
+                    '<script>const note = "bl-nav nav-autohide";</script></body></html>')
+        self.assertEqual(html_checks.Page(mentions).site_header, [])
+        for page in ('<nav id="bl-nav" class="bl-nav"></nav>', '<div class="x bl-nav__links"></div>',
+                     '<button id="bl-nav-toggle"></button>', '<div class="nav-autohide"></div>',
+                     '<link rel="stylesheet" href="/assets/css/header.css">',
+                     '<script src="/assets/js/header.js"></script>'):
+            with self.subTest(page=page):
+                self.assertTrue(html_checks.Page(page).site_header)
+
+    def test_a_game_that_only_mentions_the_header_passes_the_checks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = Path(tmp) / 'dist'
+            out = dist / 'projects' / 'games'
+            make(out, ['index.html'])
+            make(out, ['ok/index.html'], '<html><body><!-- not a bl-nav --><canvas></canvas></body></html>')
+            with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
+                self.assertEqual(pack.check([{'path': '/projects/games/ok/'}]), [])
 
 
 class Release(unittest.TestCase):
