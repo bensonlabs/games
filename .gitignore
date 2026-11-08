@@ -8,3 +8,8 @@ games/dungeon-crawler/assets/
 __pycache__/
 *.py[cod]
 .DS_Store
+
+# Personal Claude Code files (architectureOS)
+.claude/worktrees/
+.claude/settings.local.json
+CLAUDE.local.md

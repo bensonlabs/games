@@ -1,0 +1,27 @@
+{
+  "source_repo": "https://github.com/bensonlabs/architectureOS.git",
+  "synced_commit": "9bf4dcd3eabef059cb38ddfb1eeef5d6f9971cb4",
+  "synced_at": "2026-11-07",
+  "vars": {
+    "PROJECT_NAME": "Games"
+  },
+  "managed": {
+    "CLAUDE.md": "regions",
+    ".claude/settings.json": "seed",
+    ".claude/hooks/README.md": "file",
+    ".claude/hooks/new-surface-reminder.mjs": "file",
+    ".claude/hooks/push-reminder.mjs": "file",
+    ".claude/hooks/reminders-lib.mjs": "file",
+    ".claude/hooks/reminders.config.json": "seed",
+    ".claude/skills/feature-fit/SKILL.md": "file",
+    ".claude/skills/handoff/SKILL.md": "file",
+    ".claude/skills/kickoff/SKILL.md": "file",
+    ".claude/skills/sync-governance/SKILL.md": "file",
+    ".claude/skills/wrap-up/SKILL.md": "file",
+    "docs/FEATURE_BRIEF_TEMPLATE.md": "file",
+    "docs/STARTER_DOC_TEMPLATE.md": "file",
+    "docs/decisions/0001-use-decision-records.md": "seed",
+    "docs/decisions/TEMPLATE.md": "file",
+    "docs/feature-fit/TEMPLATE.md": "file"
+  }
+}
