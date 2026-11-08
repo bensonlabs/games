@@ -20,10 +20,10 @@ def make(root, names, content='x'):
 
 class PublishRules(unittest.TestCase):
     def test_only_files_a_browser_needs_are_published(self):
-        keep = ['index.html', 'js/game.js', 'img/dog.png', 'pkg/game.wasm', 'levels.json', 'docs/pkg/game.js']
+        keep = ['index.html', 'js/game.js', 'img/dog.png', 'pkg/game.wasm', 'levels.json', 'docs/pkg/game.js', 'guide/index.md']
         drop = ['README.md', 'stub.md', 'Cargo.toml', 'Cargo.lock', 'src/main.rs', 'build.sh', 'bun.lock',
                 'package.json', 'package-lock.json', 'game.json', 'metadata.json', 'tsconfig.json',
-                'vite.config.ts', 'src/App.tsx', 'index.source.html', '.gitignore', '.nojekyll',
+                'vite.config.ts', 'src/App.tsx', 'index.source.html', '.gitignore', '.nojekyll', 'card.json', 'section.json',
                 '.publishignore', 'node_modules/x/index.js', 'dist/index.html', 'checks/play.mjs']
         with tempfile.TemporaryDirectory() as tmp:
             game = Path(tmp)
@@ -49,7 +49,7 @@ class Catalogue(unittest.TestCase):
             make(root, ['games/index.html'], '<script>const GAMES = ' + pack.PLACEHOLDER + ';</script>')
             with patch.object(pack, 'GAMES_DIR', root / 'games'), patch.object(pack, 'OUT', root / 'out'):
                 pack.write_catalogue(games)
-            text = (root / 'out' / 'index.html').read_text(encoding='utf-8')
+            text = (root / 'out' / 'games' / 'index.html').read_text(encoding='utf-8')
         self.assertEqual(text.count('</script>'), 1)
         data = text[len('<script>const GAMES = '):-len(';</script>')]
         self.assertEqual(json.loads(data), games)
@@ -68,11 +68,11 @@ class Checks(unittest.TestCase):
     def test_flags_missing_pages_big_files_and_site_header_in_games(self):
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp) / 'dist'
-            out = dist / 'projects' / 'games'
-            make(out, ['index.html', 'ok/index.html'])
-            make(out, ['nav/index.html'], '<nav id="bl-nav"></nav>')
-            make(out, ['front/index.html'], '---\nlayout: project\n---\n')
-            make(out, ['big/index.html'], 'x' * (pack.MAX_FILE_BYTES + 1))
+            out = dist / 'projects'
+            make(out, ['games/index.html', 'games/ok/index.html'])
+            make(out, ['games/nav/index.html'], '<nav id="bl-nav"></nav>')
+            make(out, ['games/front/index.html'], '---\nlayout: project\n---\n')
+            make(out, ['games/big/index.html'], 'x' * (pack.MAX_FILE_BYTES + 1))
             games = [{'path': f'/projects/games/{slug}/'} for slug in ('ok', 'nav', 'front', 'big', 'missing')]
             with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
                 errors = pack.check(games)
@@ -96,9 +96,9 @@ class SiteHeader(unittest.TestCase):
     def test_a_game_that_only_mentions_the_header_passes_the_checks(self):
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp) / 'dist'
-            out = dist / 'projects' / 'games'
-            make(out, ['index.html'])
-            make(out, ['ok/index.html'], '<html><body><!-- not a bl-nav --><canvas></canvas></body></html>')
+            out = dist / 'projects'
+            make(out, ['games/index.html'])
+            make(out, ['games/ok/index.html'], '<html><body><!-- not a bl-nav --><canvas></canvas></body></html>')
             with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
                 self.assertEqual(pack.check([{'path': '/projects/games/ok/'}]), [])
 
@@ -112,11 +112,11 @@ class Release(unittest.TestCase):
             with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
                 first = pack.write_release('v1.2.3').read_bytes()
                 second = pack.write_release('v1.2.3').read_bytes()
-            sha_line = (dist / 'games-v1.2.3.tar.gz.sha256').read_text(encoding='utf-8')
-            with tarfile.open(dist / 'games-v1.2.3.tar.gz') as tar:
+            sha_line = (dist / 'projects-v1.2.3.tar.gz.sha256').read_text(encoding='utf-8')
+            with tarfile.open(dist / 'projects-v1.2.3.tar.gz') as tar:
                 members = tar.getmembers()
         self.assertEqual(first, second)
-        self.assertEqual(sha_line, hashlib.sha256(first).hexdigest() + '  games-v1.2.3.tar.gz\n')
+        self.assertEqual(sha_line, hashlib.sha256(first).hexdigest() + '  projects-v1.2.3.tar.gz\n')
         self.assertEqual([m.name for m in members], ['a/img/x.png', 'b/index.html', 'index.html'])
         self.assertTrue(all(m.isfile() and m.mode == 0o644 and m.mtime == 0 for m in members))
 

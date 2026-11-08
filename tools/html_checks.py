@@ -22,10 +22,12 @@ class Page(HTMLParser):
         self.ids: dict[str, int] = {}
         self.assets: list[str] = []
         self.site_header: list[str] = []
+        self.tags: set[str] = set()
         self.feed(text)
         self.close()
 
     def handle_starttag(self, tag, attrs):
+        self.tags.add(tag)
         attrs = {name: value or "" for name, value in attrs}
         element_id = attrs.get("id", "")
         if element_id:

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Decide whether a fresh pack is a new release, and name it.
 
-    python3 tools/next_version.py --packed dist/games-v0.0.0.tar.gz --latest v1.0.3 --published-sha <sha>
+    python3 tools/next_version.py --packed dist/projects-v0.0.0.tar.gz --latest v1.0.3 --published-sha <sha>
 
 Packs are reproducible, so the same games always give the same sha256. If the fresh pack
 matches the latest release's, nothing the site shows has changed: print nothing. Otherwise
-copy the pack to dist/games-<next>.tar.gz, write its .sha256, and print <next>: the latest
+copy the pack to dist/projects-<next>.tar.gz, write its .sha256, and print <next>: the latest
 version with its last number raised (v1.0.3 -> v1.0.4), or v1.0.0 when there is no release yet.
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ def plan(packed: Path, latest: str | None, published_sha: str | None) -> str | N
     if published_sha and digest == published_sha.strip():
         return None
     version = bumped(latest)
-    name = f"games-{version}.tar.gz"
+    name = f"projects-{version}.tar.gz"
     shutil.copyfile(packed, packed.parent / name)
     (packed.parent / f"{name}.sha256").write_text(f"{digest}  {name}\n", encoding="utf-8", newline="\n")
     return version
