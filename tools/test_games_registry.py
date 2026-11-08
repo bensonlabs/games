@@ -22,6 +22,22 @@ class RegistryTests(unittest.TestCase):
             with self.subTest(order=value):
                 self.assertIsNotNone(registry.merge_fields('a', '', {'order': value})[1])
 
+    def test_games_link_setting(self):
+        for value in ('top-left', 'top-right', 'bottom-left 92px', 'bottom-right 8px', 'off', ''):
+            with self.subTest(value=value):
+                self.assertIsNone(registry.merge_fields('a', '', {'games-link': value})[1])
+        for value in ('middle', 'top', 'top-left 5em', 'top-left px', 'Top-Left', 'top-left  8px', 3, None):
+            with self.subTest(value=value):
+                self.assertIsNotNone(registry.merge_fields('a', '', {'games-link': value})[1])
+        with tempfile.TemporaryDirectory() as tmp:
+            game = Path(tmp)
+            (game / 'index.html').write_text('<!-- bl-game-meta\ntitle: A\n-->', encoding='utf-8')
+            self.assertEqual(registry.games_link(game), 'top-left')
+            (game / 'index.html').write_text('<!-- bl-game-meta\ngames-link: bottom-left 92px\n-->', encoding='utf-8')
+            self.assertEqual(registry.games_link(game), 'bottom-left 92px')
+            (game / 'game.json').write_text('{"title": "A", "games-link": "off"}', encoding='utf-8')
+            self.assertEqual(registry.games_link(game), 'off')
+
     def test_fallback(self):
         meta, error = registry.merge_fields('foo-bar', '<title>Foo — Benson Labs</title>', {})
         self.assertIsNone(error)

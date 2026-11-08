@@ -9,6 +9,9 @@ What a release contains:
   TOML, TypeScript, shell scripts, lockfiles, package and metadata files, hidden
   files, and anything listed in the game's own .publishignore (glob patterns);
 - for a game with a package.json, only its npm build output (dist/);
+- in each game page that doesn't link back to the catalogue yet, a small fixed
+  "← Games" link to /projects/games/, where the game's games-link metadata puts it
+  (top-left unless it says otherwise; "off" leaves the game alone);
 - games/index.html, the catalogue, with the games list written in twice: as data
   for the script that draws the cards, and as plain links for visitors without
   JavaScript.
@@ -40,6 +43,7 @@ import subprocess
 import sys
 import tarfile
 from pathlib import Path
+from urllib.parse import urljoin, urlsplit
 
 import build_games_registry as registry
 from html_checks import Page
@@ -61,6 +65,8 @@ NEVER_PUBLISHED_NAMES = {"package.json", "package-lock.json", "tsconfig.json",
 NEVER_PUBLISHED_DIRS = {"node_modules", "dist"}
 # Written into node_modules after a successful `npm ci`: what it was installed from.
 INSTALL_MARKER = ".pack-installed-from"
+SITE = "https://bensonlabs.org"
+CATALOGUE_PATHS = {"/projects/games/", "/projects/games", "/projects/games/index.html"}
 
 
 def read_publishignore(game_dir: Path) -> list[str]:
@@ -150,6 +156,80 @@ def noscript_list(games: list[dict]) -> str:
         for game in games)
 
 
+def games_link_html(setting: str) -> str:
+    """A small "← Games" link back to the catalogue, fixed in a corner of the page: 8px from
+    the side, and 8px (or the setting's distance) from the top or bottom, plus any safe area.
+
+    Inline styles only, so it needs nothing from the site and no game's CSS can easily change
+    it; a translucent dark pill with a light border, readable on dark and light games alike.
+    No id or class: nothing here may look like the site header (bl-nav)."""
+    match = registry.GAMES_LINK_RE.fullmatch(setting)
+    vertical, horizontal = match["corner"].split("-")
+    distance = int(match["distance"] or 8)
+    style = ";".join([
+        "position:fixed", f"{vertical}:calc({distance}px + env(safe-area-inset-{vertical}, 0px))",
+        f"{horizontal}:calc(8px + env(safe-area-inset-{horizontal}, 0px))", "z-index:2147483647",
+        "display:block", "width:auto", "height:auto", "margin:0", "box-sizing:border-box",
+        "padding:4px 11px", "border:1px solid rgba(255,255,255,.4)", "border-radius:999px",
+        "background:rgba(16,16,22,.68)", "color:#fff", "opacity:.9",
+        "font:600 13px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif",
+        "letter-spacing:normal", "text-transform:none", "text-decoration:none", "text-shadow:none",
+        "-webkit-tap-highlight-color:transparent",
+    ])
+    return f'<a href="/projects/games/" data-games-link aria-label="Back to the games" style="{style}">&larr; Games</a>'
+
+
+def links_to_catalogue(page: Page, url: str) -> bool:
+    """Whether any <a> on the page at `url` leads to the catalogue."""
+    for href in page.links:
+        target = urlsplit(urljoin(url, href.strip()))
+        if target.netloc in ("bensonlabs.org", "www.bensonlabs.org") and target.path in CATALOGUE_PATHS:
+            return True
+    return False
+
+
+def allows_inline_styles(policy: str) -> bool:
+    """Whether a Content-Security-Policy lets a style="..." attribute apply."""
+    directives: dict[str, list[str]] = {}
+    for directive in policy.split(";"):
+        words = directive.lower().split()
+        if words and words[0] not in directives:
+            directives[words[0]] = words[1:]
+    for name in ("style-src-attr", "style-src", "default-src"):
+        if name in directives:
+            sources = directives[name]
+            hashed = any(source.startswith(("'nonce-", "'sha256-", "'sha384-", "'sha512-")) for source in sources)
+            return "'unsafe-inline'" in sources and not hashed
+    return True
+
+
+def add_games_links(game_dir: Path, setting: str) -> list[str]:
+    """Give each page of a packed game a way back to the catalogue (site review L11; Justin's
+    choice, 2026-11-08): the "← Games" link goes in just before </body>, unless the page
+    already links to the catalogue or the game's games-link metadata is "off". Returns errors."""
+    errors = []
+    if setting == "off":
+        return errors
+    for path in sorted(game_dir.rglob("*.html")):
+        rel = path.relative_to(OUT).as_posix()
+        try:
+            text = path.read_bytes().decode("utf-8")
+        except UnicodeDecodeError:
+            errors.append(f'{rel}: isn\'t UTF-8, so the "← Games" link can\'t be added')
+            continue
+        page = Page(text)
+        if links_to_catalogue(page, f"{SITE}/projects/games/{rel}"):
+            continue
+        if not all(allows_inline_styles(policy) for policy in page.policies):
+            errors.append(f'{rel}: its Content-Security-Policy blocks inline styles, so the "← Games" link '
+                          "can't be styled: allow 'unsafe-inline' in style-src, or give the page its own link "
+                          "to /projects/games/ (or set games-link: off)")
+            continue
+        end = len(text) if page.body_end is None else page.body_end
+        path.write_bytes((text[:end] + games_link_html(setting) + "\n" + text[end:]).encode("utf-8"))
+    return errors
+
+
 def write_catalogue(games: list[dict]) -> None:
     template = (GAMES_DIR / "index.html").read_text(encoding="utf-8")
     for placeholder in (PLACEHOLDER, NOSCRIPT_PLACEHOLDER):
@@ -237,15 +317,17 @@ def main() -> None:
     if DIST.exists():
         shutil.rmtree(DIST)
     games = registry.build_games_array()
+    errors = []
     for game_dir in registry.find_game_dirs():
         dest = OUT / game_dir.name
         if (game_dir / "package.json").is_file():
             pack_built_game(game_dir, dest)
         else:
             pack_static_game(game_dir, dest)
+        errors += add_games_links(dest, registry.games_link(game_dir))
     write_catalogue(games)
 
-    errors = check(games)
+    errors += check(games)
     if errors:
         print("Pack FAILED:", file=sys.stderr)
         for error in errors:

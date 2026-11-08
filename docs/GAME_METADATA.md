@@ -45,7 +45,8 @@ Equivalent compiled-game `game.json`:
 `title`, `emoji`, and `description` are strings. `order` is an integer (an integer
 string is accepted for legacy comments). Lower orders appear first; ties sort by
 title, then retain sorted directory discovery order. Equal titles/orders across
-games are permitted. Paths always derive from the directory name.
+games are permitted. Paths always derive from the directory name. One more,
+optional field, `games-link`, places the game's "← Games" link (below).
 
 Missing or empty fields preserve the initial fallback behavior: title from the
 HTML title with the Benson Labs suffix removed, else title-cased slug;
@@ -64,6 +65,23 @@ do in the game), without "Made by ...". Write it in the page's own source:
 `index.source.html` for a compiled game, otherwise the page itself; nothing
 adds it at pack time. Extra pages in a game's folder (other versions) need one
 too, and so does the catalogue.
+
+## The "← Games" link
+
+`tools/pack.py` puts a small fixed "← Games" link to `/projects/games/` just
+before `</body>` of each game page that doesn't already link there (an `<a>` to
+`/projects/games/`, `../` or the full address). It's about 80x28 px, a
+translucent dark pill with inline styles and no id or class, 8px from the
+top-left corner. An optional field, in the comment or in `game.json`, moves it
+for every page of the game (it isn't part of the card): for example
+`games-link: bottom-right`, `games-link: top-left 68px` or `games-link: off`.
+
+The value is a corner (`top-left`, `top-right`, `bottom-left`, `bottom-right`),
+optionally followed by its distance in px from the top or bottom edge (8px by
+default) to clear the game's own controls, or `off` for a game with its own way
+back. Pick the spot that covers no controls, score, menus or touch areas at
+desktop (1280x800) and phone (390x844) sizes. A page whose Content-Security-Policy
+blocks inline styles fails the pack, since the link couldn't be styled.
 
 ## Standalone pages
 

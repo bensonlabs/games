@@ -176,6 +176,79 @@ class SiteHeader(unittest.TestCase):
                 self.assertEqual(pack.check([{'path': '/projects/games/ok/'}]), [])
 
 
+class GamesLink(unittest.TestCase):
+    """The "← Games" link pack.py adds to each game page that has no way back to the catalogue."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.out = Path(self.tmp.name) / 'projects' / 'games'
+        self.patch = patch.object(pack, 'OUT', self.out)
+        self.patch.start()
+
+    def tearDown(self):
+        self.patch.stop()
+        self.tmp.cleanup()
+
+    def add(self, pages, setting='top-left'):
+        """Pack pages into a game folder, add the links, and return (errors, the pages after)."""
+        for name, text in pages.items():
+            make(self.out / 'game', [name], text)
+        errors = pack.add_games_links(self.out / 'game', setting)
+        return errors, {name: (self.out / 'game' / name).read_text(encoding='utf-8') for name in pages}
+
+    def test_goes_in_just_before_the_end_of_the_body_and_nothing_else_changes(self):
+        page = ('<html><body><canvas></canvas>\n<script>const s = "</body>";</script>\n'
+                '</body>\n</html>\n')
+        errors, after = self.add({'index.html': page, 'v2.html': '<p>no body end tag'})
+        self.assertEqual(errors, [])
+        link = pack.games_link_html('top-left')
+        self.assertEqual(after['index.html'], page.replace('</body>\n</html>', link + '\n</body>\n</html>'))
+        self.assertEqual(after['v2.html'], '<p>no body end tag' + link + '\n')
+        parsed = html_checks.Page(after['index.html'])
+        self.assertEqual(parsed.links, ['/projects/games/'])
+        self.assertEqual(parsed.site_header, [])  # nothing the blog would take for its header
+
+    def test_pages_that_already_link_to_the_catalogue_are_left_alone(self):
+        for href in ('/projects/games/', '/projects/games', '../', '../index.html',
+                     'https://bensonlabs.org/projects/games/', '//bensonlabs.org/projects/games/'):
+            with self.subTest(href=href):
+                page = f'<body><a href="{href}">Back</a></body>'
+                self.assertEqual(self.add({'index.html': page}), ([], {'index.html': page}))
+        _, after = self.add({'index.html': '<body><a href="/projects/">Projects</a></body>'})
+        self.assertIn('data-games-link', after['index.html'])
+
+    def test_off_leaves_every_page_alone(self):
+        page = '<body></body>'
+        self.assertEqual(self.add({'index.html': page, 'v2.html': page}, 'off'),
+                         ([], {'index.html': page, 'v2.html': page}))
+
+    def test_the_setting_picks_the_corner_and_the_distance_from_the_edge(self):
+        default = pack.games_link_html('top-left')
+        self.assertIn('top:calc(8px + env(safe-area-inset-top, 0px))', default)
+        self.assertIn('left:calc(8px + env(safe-area-inset-left, 0px))', default)
+        moved = pack.games_link_html('bottom-right 92px')
+        self.assertIn('bottom:calc(92px + env(safe-area-inset-bottom, 0px))', moved)
+        self.assertIn('right:calc(8px + env(safe-area-inset-right, 0px))', moved)
+        self.assertNotIn('top:', moved)
+
+    def test_a_policy_that_blocks_inline_styles_stops_the_pack(self):
+        def page(policy):
+            return f'<head><meta http-equiv="Content-Security-Policy" content="{policy}"></head><body></body>'
+        for policy in ("default-src 'self'", "default-src 'self'; style-src 'self'",
+                       "style-src 'self' 'unsafe-inline' 'nonce-abc'", "style-src-attr 'none'"):
+            with self.subTest(policy=policy):
+                errors, after = self.add({'index.html': page(policy)})
+                self.assertEqual(len(errors), 1)
+                self.assertIn('blocks inline styles', errors[0])
+                self.assertNotIn('data-games-link', after['index.html'])
+        for policy in ("default-src 'self'; style-src 'self' 'unsafe-inline'", "script-src 'self'",
+                       "style-src 'self'; style-src-attr 'unsafe-inline'"):
+            with self.subTest(policy=policy):
+                errors, after = self.add({'index.html': page(policy)})
+                self.assertEqual(errors, [])
+                self.assertIn('data-games-link', after['index.html'])
+
+
 class NpmInstall(unittest.TestCase):
     """npm ci runs in CI, and locally only when node_modules wasn't installed from these files."""
 

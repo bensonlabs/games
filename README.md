@@ -58,6 +58,9 @@ Everything a browser needs to play each game, and nothing else:
 - each game folder, minus Markdown, Rust, TOML, TypeScript, shell scripts, lockfiles, package
   and metadata files, hidden files, and anything listed in the game's `.publishignore`;
 - for a game with a `package.json`, only its build output;
+- in each game page that doesn't link back to the catalogue, a small fixed "← Games" link to
+  `/projects/games/` (top-left, unless the game's `games-link` setting moves it or turns it off:
+  `docs/GAME_METADATA.md`);
 - the catalogue, with the games list written in: as cards drawn by a script, and as plain links
   for visitors without JavaScript.
 
@@ -68,4 +71,5 @@ the same files always give the same sha256.
 
 - They're served at `/projects/games/<slug>/`; the dungeon crawler is built for that path.
 - The site provides `/favicon.svg`, which a couple of games use.
-- Only `index.html` (the catalogue) gets the site header; every game stays standalone.
+- Only `index.html` (the catalogue) gets the site header; every game stays standalone. The
+  "← Games" link isn't the site header: it uses none of its ids, classes or files.

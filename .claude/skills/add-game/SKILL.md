@@ -37,6 +37,13 @@ asking, except where they say to show Justin something.
    and link previews show it. Every published page needs one, extra pages included.
 4. **Check it**: `python3 tools/pack.py` must pass. It catches a missing page, a site header, front
    matter, a page without a meta description, files over 750 KB and games over 1 MB.
+
+   The pack also gives each page a small "← Games" link back to the catalogue, top-left, unless
+   the page links to `/projects/games/` itself. Serve the pack (`python3 -m http.server -d dist`)
+   and open the game at 1280x800 and 390x844, before and after starting it. If the link covers
+   controls, score, a menu or touch controls, add `games-link:` to the comment with a free corner
+   and, if needed, a distance from the edge (`games-link: top-right`, `games-link: top-left 68px`;
+   `docs/GAME_METADATA.md`), and check again.
 5. **Commit and push** only the game's folder: `git add games/<slug>` then a commit "Add <title>"
    and `git push` to `main`. If the push reminder says something, answer it in the commit message as
    it asks.
