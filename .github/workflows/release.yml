@@ -1,9 +1,16 @@
 name: Release
+# Every push to main that changes what bensonlabs.org would show publishes the next release
+# (v1.0.3 -> v1.0.4) and asks the blog to pin it; the blog deploys after its own checks.
+# Packs are reproducible, so a push that changes nothing the site shows publishes nothing.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+  workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -17,16 +24,43 @@ jobs:
           cache-dependency-path: games/dungeon-crawler/package-lock.json
       - name: Test the tools
         run: python3 -m unittest discover -s tools -p 'test_*.py'
-      - name: Build and pack the release
-        run: python3 tools/pack.py --version "$GITHUB_REF_NAME"
+      - name: Build and pack every game
+        run: python3 tools/pack.py --version v0.0.0
       - name: Check the dungeon crawler build
         run: python3 tools/check_dungeon_build.py
-      - name: Publish the release
+      - name: Is this a new release?
+        id: plan
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          name="games-$GITHUB_REF_NAME.tar.gz"
+          latest=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
+          published=""
+          if [ -n "$latest" ]; then
+            published=$(gh release download "$latest" --pattern '*.sha256' --output - | cut -d' ' -f1)
+          fi
+          version=$(python3 tools/next_version.py --packed dist/games-v0.0.0.tar.gz --latest "$latest" --published-sha "$published")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ -z "$version" ]; then echo "Nothing the site shows changed since $latest, so no release."; else echo "New release: $version (after ${latest:-none})."; fi
+      - name: Publish the release
+        if: steps.plan.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.plan.outputs.version }}
+        run: |
+          name="games-$VERSION.tar.gz"
           sha=$(cut -d' ' -f1 "dist/$name.sha256")
-          gh release create "$GITHUB_REF_NAME" "dist/$name" "dist/$name.sha256" --verify-tag \
-            --title "$GITHUB_REF_NAME" \
-            --notes "All games, packed for bensonlabs.org/projects/games/. sha256 of $name: $sha. To publish it, update the games entry in the blog's _data/components.json (python3 .github/scripts/components.py bump games $GITHUB_REF_NAME)."
+          gh release create "$VERSION" "dist/$name" "dist/$name.sha256" --target "$GITHUB_SHA" \
+            --title "$VERSION" \
+            --notes "All games, packed for bensonlabs.org/projects/games/ from $GITHUB_SHA. sha256 of $name: $sha. The blog pins it and deploys after its checks (its Update components workflow)."
+      - name: Tell the blog to publish it
+        if: steps.plan.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ secrets.BLOG_DISPATCH_TOKEN }}
+          VERSION: ${{ steps.plan.outputs.version }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice title=Blog not told::BLOG_DISPATCH_TOKEN isn't set, so the blog picks up $VERSION at its daily check. To publish it now, run the blog's Update components workflow."
+            exit 0
+          fi
+          gh workflow run update-components.yml -R bensonlabs/blog -f component=games -f version="$VERSION"
+          echo "Asked the blog to pin $VERSION; it deploys after its checks."

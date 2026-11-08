@@ -1,7 +1,6 @@
 name: Games
+# Pull requests; pushes to main run the same checks in release.yml before releasing.
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:

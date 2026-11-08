@@ -192,7 +192,7 @@ Listed 2026-11-07 (Justin's choice of how rules fit a project; architectureOS AD
 
 | When | Do |
 |---|---|
-| Adding or changing a game | Keep it a standalone page in `games/<slug>/`: its own complete HTML document, no front matter, no site header (`bl-nav`). Give it metadata as `docs/GAME_METADATA.md` describes; `docs/AGENT_PROMPT_ADDENDUM.md` is the brief for building one. |
+| Adding or changing a game | Use the `add-game` skill; it pushes straight to `main` and the game goes live by itself. Keep it a standalone page in `games/<slug>/`: its own complete HTML document, no front matter, no site header (`bl-nav`). Give it metadata as `docs/GAME_METADATA.md` describes; `docs/AGENT_PROMPT_ADDENDUM.md` is the brief for building one. |
 | A game needs a file the site shouldn't publish (dev scripts, sources) | Add a glob to the game's `.publishignore`. Docs, Rust, TOML, TypeScript, shell scripts, lockfiles, package and metadata files are never published anyway. |
 | Adding images, sounds or fonts | No published file may be over 750 KB: size images to how they're drawn. |
 | Changing how a game saves progress (core rule 11) | Keep existing saves loading: read the old format or migrate it. Never silently reset a player's saved progress or high scores. |
@@ -214,18 +214,20 @@ Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies 
 
 - Sandbox for testing: a local pack in `dist/`, served as above. There is no shared test site.
 - Live, and who changes it: bensonlabs.org shows the release pinned in the blog's
-  `_data/components.json`. Justin publishes: tag here, then bump the pin in the blog.
+  `_data/components.json`. A push to `main` that changes what the site shows goes live within
+  minutes; the blog deploys only after its own checks pass.
 
 ### Branches, review and release
 
-- PRs go to (target branch): `main`.
+- PRs go to (target branch): `main`. Adding, changing or removing a game goes straight to `main`
+  (owner decision, 2026-11-08); tools and workflows go through a PR.
 - Branch names (default `feature/<short-name>`): the default.
 - Bring a branch up to date by (merge or rebase): merge.
 - Reviewer: with no second reviewer, the person reviews the whole diff themselves before it merges.
-- How changes reach users, and who runs it: Justin tags `vX.Y.Z` on `main`; the Release workflow
-  packs and publishes `games-vX.Y.Z.tar.gz` with its sha256. In the blog,
-  `python3 .github/scripts/components.py bump games vX.Y.Z` updates the pin; merging that PR
-  deploys bensonlabs.org.
+- How changes reach users, and who runs it: nobody runs anything. Every push to `main` that changes
+  what the site shows makes the Release workflow publish the next version (`games-vX.Y.Z.tar.gz`
+  and its sha256) and ask the blog to pin it; the blog's Update components workflow runs its checks,
+  pins the release and deploys (ADR 3).
 
 ### Where things live (feature-fit searches these)
 
