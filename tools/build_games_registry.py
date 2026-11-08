@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-GAMES_DIR = REPO_ROOT / "games"
+GAMES_DIR = REPO_ROOT / "site" / "games"
 OUTPUT_FILE = REPO_ROOT / "dist" / "games.json"
 
 META_BLOCK_RE = re.compile(r"<!--\s*bl-game-meta(.*?)-->", re.DOTALL)

@@ -2,8 +2,8 @@
 dist/
 
 # The dungeon crawler is built by tools/pack.py; its build output is never committed.
-games/dungeon-crawler/index.html
-games/dungeon-crawler/assets/
+site/games/dungeon-crawler/index.html
+site/games/dungeon-crawler/assets/
 
 __pycache__/
 *.py[cod]

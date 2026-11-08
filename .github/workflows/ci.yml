@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: games/dungeon-crawler/package-lock.json
+          cache-dependency-path: site/games/dungeon-crawler/package-lock.json
       - name: Test the tools
         run: python3 -m unittest discover -s tools -p 'test_*.py'
       - name: Build and pack every game (as a release would)
