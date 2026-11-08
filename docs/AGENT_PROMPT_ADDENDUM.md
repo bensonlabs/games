@@ -19,7 +19,9 @@ source input and deployed base path; generated HTML is output, not metadata inpu
 Run `python3 tools/pack.py` to validate the metadata and build the packed site in
 `dist/projects/games/`, where the catalogue is generated; nothing generated is
 committed. Files a browser never needs (docs, sources, lockfiles) are left out of
-a release; list a game's other development files in its `.publishignore`.
+a release; list a game's other development files in its `.publishignore`. Keep
+each published file under 750 KB and the whole game under 1 MB: size images to
+how they're drawn and save pictures as WebP.
 
 The catalogue page (`games/index.html`) is the one page that gets the site
 header: the blog wraps it when it assembles bensonlabs.org. Keep it a complete

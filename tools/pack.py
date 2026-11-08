@@ -11,6 +11,8 @@ What a release contains:
 - for a game with a package.json, only its npm build output (dist/);
 - games/index.html, the catalogue, with the games list written in.
 
+No published file may be over 750 KB, and no game over 1 MB in all.
+
 The blog (bensonlabs/blog) downloads the release, checks its sha256, unpacks it
 into /projects/games/ and wraps the catalogue in the site header. Game pages stay
 standalone documents.
@@ -38,6 +40,9 @@ DIST = registry.REPO_ROOT / "dist"
 OUT = DIST / "projects" / "games"
 PLACEHOLDER = "[] /* games list: filled in by tools/pack.py */"
 MAX_FILE_BYTES = 750 * 1024
+# Source: site review E1, approved by Justin 2026-11-08. Sparky's Run had grown to 1.3 MB of
+# PNGs drawn at a third of their size; the limit stops a game creeping back up.
+MAX_GAME_BYTES = 1024 * 1024
 VERSION_RE = re.compile(r"v\d+\.\d+\.\d+")
 
 NEVER_PUBLISHED_SUFFIXES = {".md", ".rs", ".toml", ".ts", ".tsx", ".sh", ".lock"}
@@ -103,11 +108,25 @@ def write_catalogue(games: list[dict]) -> None:
     (OUT / "index.html").write_text(template.replace(PLACEHOLDER, data), encoding="utf-8", newline="\n")
 
 
+def game_sizes() -> dict[str, int]:
+    """Bytes each packed game publishes, by folder name (the catalogue isn't a game)."""
+    sizes: dict[str, int] = {}
+    for path in OUT.rglob("*"):
+        rel = path.relative_to(OUT)
+        if path.is_file() and len(rel.parts) > 1:
+            sizes[rel.parts[0]] = sizes.get(rel.parts[0], 0) + path.stat().st_size
+    return sizes
+
+
 def check(games: list[dict]) -> list[str]:
     errors = []
     for game in games:
         if not (DIST / game["path"].strip("/") / "index.html").is_file():
             errors.append(f"{game['path']}: no index.html")
+    for slug, size in sorted(game_sizes().items()):
+        if size > MAX_GAME_BYTES:
+            errors.append(f"{slug}: {size // 1024} KB in all, over the {MAX_GAME_BYTES / 1048576:g} MB limit "
+                          "for one game: shrink its images, sounds or fonts")
     for path in sorted(p for p in OUT.rglob("*") if p.is_file()):
         rel = path.relative_to(OUT).as_posix()
         size = path.stat().st_size
@@ -172,6 +191,9 @@ def main() -> None:
     files = [p for p in OUT.rglob("*") if p.is_file()]
     size = sum(p.stat().st_size for p in files)
     print(f"Packed {len(games)} games: {len(files)} files, {size / 1048576:.1f} MB in dist/projects/games/")
+    largest = max(game_sizes().items(), key=lambda item: item[1], default=None)
+    if largest:
+        print(f"Largest game: {largest[0]}, {largest[1] // 1024} KB of the {MAX_GAME_BYTES // 1024} KB limit")
     if args.version:
         archive = write_release(args.version)
         print((DIST / f"{archive.name}.sha256").read_text(encoding="utf-8").strip())

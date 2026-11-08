@@ -194,7 +194,7 @@ Listed 2026-11-07 (Justin's choice of how rules fit a project; architectureOS AD
 |---|---|
 | Adding or changing a game | Use the `add-game` skill; it pushes straight to `main` and the game goes live by itself. Keep it a standalone page in `games/<slug>/`: its own complete HTML document, no front matter, no site header (`bl-nav`). Give it metadata as `docs/GAME_METADATA.md` describes; `docs/AGENT_PROMPT_ADDENDUM.md` is the brief for building one. |
 | A game needs a file the site shouldn't publish (dev scripts, sources) | Add a glob to the game's `.publishignore`. Docs, Rust, TOML, TypeScript, shell scripts, lockfiles, package and metadata files are never published anyway. |
-| Adding images, sounds or fonts | No published file may be over 750 KB: size images to how they're drawn. |
+| Adding images, sounds or fonts | No published file may be over 750 KB, and no game over 1 MB in all: size images to how they're drawn, and use WebP (or JPEG) for pictures rather than PNG. |
 | Changing how a game saves progress (core rule 11) | Keep existing saves loading: read the old format or migrate it. Never silently reset a player's saved progress or high scores. |
 | The dungeon crawler | Its build output (`index.html`, `assets/`) is made by `tools/pack.py` and never committed. Vite's `base` must stay `/projects/games/dungeon-crawler/`. |
 

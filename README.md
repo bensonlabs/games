@@ -56,8 +56,8 @@ Everything a browser needs to play each game, and nothing else:
 - for a game with a `package.json`, only its build output;
 - the catalogue, with the games list written in.
 
-No published file may be over 750 KB. Releases are reproducible: the same files always give
-the same sha256.
+No published file may be over 750 KB, and no game over 1 MB in all. Releases are reproducible:
+the same files always give the same sha256.
 
 ## What the games expect from the site
 

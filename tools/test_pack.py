@@ -81,6 +81,22 @@ class Checks(unittest.TestCase):
             self.assertTrue(any(expected in error for error in errors), expected)
 
 
+    def test_flags_a_game_over_the_size_limit_for_one_game(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = Path(tmp) / 'dist'
+            out = dist / 'projects' / 'games'
+            make(out, ['index.html'], 'x' * pack.MAX_FILE_BYTES)  # the catalogue isn't a game
+            make(out, ['heavy/a.webp', 'heavy/b.webp'], 'x' * 600 * 1024)  # each file is under its limit
+            make(out, ['heavy/index.html'])
+            make(out, ['full/index.html'], 'x' * (pack.MAX_GAME_BYTES - pack.MAX_FILE_BYTES))
+            make(out, ['full/a.webp'], 'x' * pack.MAX_FILE_BYTES)  # exactly at the limit is fine
+            games = [{'path': '/projects/games/heavy/'}, {'path': '/projects/games/full/'}]
+            with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
+                errors = [error for error in pack.check(games) if 'in all' in error]
+        self.assertEqual(errors, ['heavy: 1200 KB in all, over the 1 MB limit for one game: '
+                                  'shrink its images, sounds or fonts'])
+
+
 class SiteHeader(unittest.TestCase):
     def test_found_by_its_elements_and_files_not_by_mentions(self):
         mentions = ('<html><body><!-- no bl-nav here --><p>about bl-nav</p>'
