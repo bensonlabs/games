@@ -12,14 +12,19 @@ and the catalogue page that lists them.
 
 ## How a change reaches the site
 
-1. Changes land on `main` through PRs. CI tests the tools and packs every game.
-2. A tag such as `v1.2.0` runs the Release workflow. It packs the games and publishes
-   `games-v1.2.0.tar.gz` and its sha256 as a GitHub release.
-3. In the blog, `python3 .github/scripts/components.py bump games v1.2.0` pins that release
-   (version and sha256) in `_data/components.json`. Merging that PR deploys bensonlabs.org.
+By itself, within a few minutes:
 
-The blog unpacks the release into `/projects/games/` and wraps only the catalogue page in
-the site header. Game pages are published exactly as packed.
+1. A push to `main` (adding a game goes straight there) runs the Release workflow: it tests the
+   tools, packs every game and compares the pack with the latest release. Packs are reproducible,
+   so if nothing the site shows changed, it stops there.
+2. Otherwise it publishes the next release (`v1.0.3` -> `v1.0.4`): `games-<version>.tar.gz` and
+   its sha256, and asks the blog to publish it.
+3. The blog's Update components workflow pins that release in `_data/components.json`, builds the
+   whole site with it, runs its page checks and deploys. If a check fails, the site keeps the
+   previous release.
+
+The blog unpacks the release into `/projects/games/` and wraps only the catalogue page in the site
+header. Game pages are published exactly as packed. Why: `docs/decisions/0002` and `0003`.
 
 ## Working on it
 
@@ -31,11 +36,16 @@ the site header. Game pages are published exactly as packed.
 
 ## Adding a game
 
-1. Make a folder `games/<slug>/` with a standalone `index.html`: its own complete document,
-   with no front matter and no site header.
-2. Describe it in a `bl-game-meta` comment (or a `game.json` for a built game), as
-   `docs/GAME_METADATA.md` explains. That's what puts it in the catalogue.
-3. Run `python3 tools/pack.py`, preview it, and open a PR.
+Tell Claude "add this game" with the HTML file (or paste it, or give a link). The `add-game` skill
+puts it in `games/<slug>/`, writes its catalogue card (title, emoji, one-line description) and
+checks it, then pushes it to `main`. It's on bensonlabs.org a few minutes later.
+
+By hand, from anywhere (GitHub's website works, phone included):
+
+1. Add `games/<slug>/index.html`: one standalone page with no front matter and no site header.
+2. For the card, put a `bl-game-meta` comment in its `<head>` (`docs/GAME_METADATA.md`). Without
+   one, the card uses the page's `<title>` and its description.
+3. Commit it to `main`.
 
 ## What a release contains
 
