@@ -113,8 +113,6 @@ screenshot:
   *before* being accumulated, and `autoQuality` was fed that floored value
   — blinding the adaptive quality system exactly when it needed to act.
 
-Full detail in the build log entry `log/2026-10-20-lumen-review-fixes.md`.
-
 **7. Build a regression suite, not a one-off test.** Every defect above
 became a numbered check in `review.mjs`, written to *fail* if the bug ever
 returns. 14 checks, all passing.

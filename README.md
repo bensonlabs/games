@@ -3,9 +3,10 @@
 The games published at [bensonlabs.org/projects/games/](https://bensonlabs.org/projects/games/),
 and the catalogue page that lists them.
 
-- **Owns:** every game under `/projects/games/`, and the catalogue. The
-  [blog](https://github.com/bensonlabs/blog) owns the rest of bensonlabs.org, including the
-  site header.
+- **Owns:** every game under `/projects/games/`, and the catalogue. The rest of `/projects/`
+  belongs to [bensonlabs/projects](https://github.com/bensonlabs/projects). The
+  [blog](https://github.com/bensonlabs/blog) owns its own pages and the site header, and
+  assembles and deploys the whole site.
 - **Lifecycle stage:** project. Split out of the blog on 2026-11-07, history included.
 - **Guidance:** `CLAUDE.md` (rules for AI agents, from architectureOS),
   `docs/GAME_METADATA.md`, `docs/AGENT_PROMPT_ADDENDUM.md` and `docs/decisions/`.
@@ -28,9 +29,12 @@ header. Game pages are published exactly as packed. Why: `docs/decisions/0002` a
 
 ## Working on it
 
+On Windows, where `python3` isn't on the PATH, run these with `py` instead.
+
 - Pack and check everything: `python3 tools/pack.py`
 - Preview: `python3 -m http.server -d dist`, then open http://localhost:8000/projects/games/
-- Tests: `python3 -m unittest discover -s tools -p 'test_*.py'`
+- Tests: `python3 -m unittest discover -s tools -p 'test_*.py'` (they include a check that every
+  repo path the docs cite in backticks exists)
 - The dungeon crawler is a Vite and React app in `games/dungeon-crawler/`. `tools/pack.py`
   builds it with npm (Node 22 in CI); its build output is never committed. Locally it runs
   `npm ci` only when `node_modules` wasn't installed from the current `package.json` and

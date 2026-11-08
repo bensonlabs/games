@@ -6,7 +6,7 @@ description: Add a new game to bensonlabs.org - put its HTML in games/<slug>/, w
 # Add a game
 
 Adding a game is one push to `main`: the Release workflow publishes the next release and the
-blog pins it and deploys after its checks (owner decision, 2026-11-08). Do the steps below without
+blog pins it and deploys after its checks (owner decision, 2026-11-07). Do the steps below without
 asking, except where they say to show Justin something.
 
 1. **Get the game.** An HTML file, pasted HTML, or a link to download. It must be one complete,
@@ -24,26 +24,30 @@ asking, except where they say to show Justin something.
    title: Game Title
    emoji: 🎮
    order: 999
-   description: One sentence on what you do in the game. Made by <model> in <tool>.
+   description: One sentence on what you do in the game. Made by <model> in <tool> on <hardware>.
    -->
    ```
 
    Pick an emoji that fits. Write the description from the game itself; end it with
-   "Made by <model> in <tool>." only when Justin says or the file shows how it was made. Keep
+   "Made by <model> in <tool> on <hardware>." only when Justin says or the file shows how it
+   was made, leaving out any part nobody knows ("Made by <model> in <tool>."). Keep
    `order: 999` unless he gives a place. Show him the card in one line; change it if he asks.
 
    Unless the page already has one, also put the description's first sentence (without "Made
    by ...") in a `<meta name="description" content="...">` in its `<head>`: search results
    and link previews show it. Every published page needs one, extra pages included.
-4. **Check it**: `python3 tools/pack.py` must pass. It catches a missing page, a site header, front
-   matter, a page without a meta description, files over 750 KB and games over 1 MB.
+4. **Check it**: `python3 tools/pack.py` (`py tools/pack.py` on Windows) must pass. It catches a
+   missing page, a site header, front matter, a page without a meta description, files over
+   750 KB and games over 1 MB.
 
    The pack also gives each page a small "← Games" link back to the catalogue, top-left, unless
-   the page links to `/projects/games/` itself. Serve the pack (`python3 -m http.server -d dist`)
-   and open the game at 1280x800 and 390x844, before and after starting it. If the link covers
-   controls, score, a menu or touch controls, add `games-link:` to the comment with a free corner
-   and, if needed, a distance from the edge (`games-link: top-right`, `games-link: top-left 68px`;
-   `docs/GAME_METADATA.md`), and check again.
+   the page links to `/projects/games/` itself. Serve the pack (`python3 -m http.server -d dist`,
+   or `py -m http.server -d dist` on Windows) and open
+   `http://localhost:8000/projects/games/<slug>/` at 1280x800 and 390x844, before and after
+   starting the game. If the link covers controls, score, a menu or touch controls, add
+   `games-link:` to the comment with a free corner and, if needed, a distance from the edge
+   (`games-link: top-right`, `games-link: top-left 68px`; `docs/GAME_METADATA.md`), and check
+   again.
 5. **Commit and push** only the game's folder: `git add games/<slug>` then a commit "Add <title>"
    and `git push` to `main`. If the push reminder says something, answer it in the commit message as
    it asks.
@@ -51,6 +55,11 @@ asking, except where they say to show Justin something.
    the blog's Update components run. When both pass, check
    `https://bensonlabs.org/projects/games/<slug>/` answers 200 and the catalogue lists the card.
    Report the link. If a check fails, the site keeps the previous release: say what failed.
+
+   If the Release run goes red at "Tell the blog to publish it", the release is still
+   published, and the blog's daily run (13:17 UTC) pins it. The red step means the blog
+   refused BLOG_DISPATCH_TOKEN (expired or revoked): tell Justin, and point him to the
+   section "The dispatch token" in bensonlabs/blog's CONTRIBUTING.md.
 
 ## Changing a card or a game
 

@@ -172,8 +172,9 @@ Doc (where each convention came from): `conventions.md`.
 ### About this project
 
 - What it owns: every game published at bensonlabs.org/projects/games/, and the games
-  catalogue page there. The blog (bensonlabs/blog) assembles the site and owns everything
-  else, including the site header it wraps around the catalogue.
+  catalogue page there. bensonlabs/projects owns the rest of /projects/. The blog
+  (bensonlabs/blog) owns its own pages and the site header it wraps around the catalogue,
+  and assembles and deploys the site.
 - Lifecycle stage (experiment, project, maintained, product, archived): project. A
   personal games collection with one user; split out of the blog on 2026-11-07.
 
@@ -203,6 +204,8 @@ Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies 
 
 ### Commands
 
+On Windows, `python3` isn't on the PATH: run the same commands with `py`.
+
 - Install: nothing for most games. `tools/pack.py` runs `npm ci` for the dungeon crawler when
   its `node_modules` wasn't installed from the current `package.json` and `package-lock.json`,
   and always in CI.
@@ -210,7 +213,8 @@ Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies 
   http://localhost:8000/projects/games/ (games use their real addresses; `/favicon.svg` comes
   from the blog, so it's missing here).
 - Tests, type check, lint (wrap-up runs these): `python3 -m unittest discover -s tools -p 'test_*.py'`,
-  `python3 tools/pack.py`, `python3 tools/check_dungeon_build.py`.
+  `python3 tools/pack.py`, `python3 tools/check_dungeon_build.py`. The tests include
+  `tools/test_docs.py`: every repo path the docs cite in backticks must exist.
 - Push reminder, once per clone: `node .claude/hooks/push-reminder.mjs --install`
 
 ### Environments
@@ -223,7 +227,7 @@ Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies 
 ### Branches, review and release
 
 - PRs go to (target branch): `main`. Adding, changing or removing a game goes straight to `main`
-  (owner decision, 2026-11-08); tools and workflows go through a PR.
+  (owner decision, 2026-11-07); tools and workflows go through a PR.
 - Branch names (default `feature/<short-name>`): the default.
 - Bring a branch up to date by (merge or rebase): merge.
 - Reviewer: with no second reviewer, the person reviews the whole diff themselves before it merges.
