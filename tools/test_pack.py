@@ -1,6 +1,9 @@
 """Tests for tools/pack.py: what a release contains, the catalogue, the checks and the release file."""
+import contextlib
 import hashlib
+import io
 import json
+import os
 import tarfile
 import tempfile
 import unittest
@@ -117,6 +120,61 @@ class SiteHeader(unittest.TestCase):
             make(out, ['ok/index.html'], '<html><body><!-- not a bl-nav --><canvas></canvas></body></html>')
             with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
                 self.assertEqual(pack.check([{'path': '/projects/games/ok/'}]), [])
+
+
+class NpmInstall(unittest.TestCase):
+    """npm ci runs in CI, and locally only when node_modules wasn't installed from these files."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.game = Path(self.tmp.name)
+        make(self.game, ['package.json'], '{"name": "game"}')
+        make(self.game, ['package-lock.json'], '{"lockfileVersion": 3}')
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def installed(self):
+        make(self.game, ['node_modules/' + pack.INSTALL_MARKER], pack.install_fingerprint(self.game) + '\n')
+
+    def test_runs_when_nothing_says_what_node_modules_holds(self):
+        self.assertTrue(pack.needs_npm_ci(self.game, environ={}))
+        make(self.game, ['node_modules/vite/index.js'])  # installed some other way
+        self.assertTrue(pack.needs_npm_ci(self.game, environ={}))
+
+    def test_skipped_when_node_modules_matches(self):
+        self.installed()
+        self.assertFalse(pack.needs_npm_ci(self.game, environ={}))
+
+    def test_runs_again_after_the_lockfile_or_package_json_changes(self):
+        for name in ('package-lock.json', 'package.json'):
+            with self.subTest(changed=name):
+                self.installed()
+                (self.game / name).write_text('{"changed": true}', encoding='utf-8')
+                self.assertTrue(pack.needs_npm_ci(self.game, environ={}))
+
+    def test_always_runs_in_ci(self):
+        self.installed()
+        self.assertTrue(pack.needs_npm_ci(self.game, environ={'CI': 'true'}))
+
+    def test_a_build_records_the_install_and_the_next_build_skips_it(self):
+        commands = []
+
+        def fake_run(command, cwd):
+            commands.append(' '.join(command[:2]))
+            if command[:2] == ['npm', 'ci']:
+                make(cwd, ['node_modules/vite/index.js'])
+            else:
+                make(cwd, ['dist/index.source.html'], '<html></html>')
+
+        output = io.StringIO()
+        with patch.object(pack, 'run', fake_run), patch.dict(os.environ), contextlib.redirect_stdout(output):
+            os.environ.pop('CI', None)
+            pack.pack_built_game(self.game, self.game / 'out')
+            pack.pack_built_game(self.game, self.game / 'out')
+        self.assertEqual(commands, ['npm ci', 'npm run', 'npm run'])
+        self.assertIn('so no npm ci', output.getvalue())
+        self.assertTrue((self.game / 'out' / 'index.html').is_file())
 
 
 class Release(unittest.TestCase):

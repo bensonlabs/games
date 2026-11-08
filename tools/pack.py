@@ -13,6 +13,10 @@ What a release contains:
 
 No published file may be over 750 KB, and no game over 1 MB in all.
 
+A game with a package.json is built with `npm ci` and `npm run build`. Locally,
+`npm ci` is skipped while the game's node_modules was installed from its current
+package.json and package-lock.json; in CI (the CI variable set) it always runs.
+
 The blog (bensonlabs/blog) downloads the release, checks its sha256, unpacks it
 into /projects/games/ and wraps the catalogue in the site header. Game pages stay
 standalone documents.
@@ -25,6 +29,7 @@ import gzip
 import hashlib
 import io
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -49,6 +54,8 @@ NEVER_PUBLISHED_SUFFIXES = {".md", ".rs", ".toml", ".ts", ".tsx", ".sh", ".lock"
 NEVER_PUBLISHED_NAMES = {"package.json", "package-lock.json", "tsconfig.json",
                          "game.json", "metadata.json", "index.source.html"}
 NEVER_PUBLISHED_DIRS = {"node_modules", "dist"}
+# Written into node_modules after a successful `npm ci`: what it was installed from.
+INSTALL_MARKER = ".pack-installed-from"
 
 
 def read_publishignore(game_dir: Path) -> list[str]:
@@ -80,9 +87,37 @@ def run(command: list[str], cwd: Path) -> None:
     subprocess.run([executable, *command[1:]], cwd=cwd, check=True)
 
 
+def install_fingerprint(game_dir: Path) -> str:
+    """The sha256 of what `npm ci` installs from: package.json and package-lock.json."""
+    digest = hashlib.sha256()
+    for name in ("package.json", "package-lock.json"):
+        digest.update(hashlib.sha256((game_dir / name).read_bytes()).digest())
+    return digest.hexdigest()
+
+
+def needs_npm_ci(game_dir: Path, environ=os.environ) -> bool:
+    """Always in CI; locally, only when node_modules wasn't installed from the current files.
+
+    `npm ci` took 17-21 s of a 20 s local pack, reinstalling the same packages every time
+    (site review E4, 2026-11-08). CI always installs afresh."""
+    if environ.get("CI"):
+        return True
+    try:
+        marker = (game_dir / "node_modules" / INSTALL_MARKER).read_text(encoding="utf-8")
+    except OSError:
+        return True
+    return marker.strip() != install_fingerprint(game_dir)
+
+
 def pack_built_game(game_dir: Path, dest: Path) -> None:
     """A game with a package.json is built with npm; only its dist/ is published."""
-    run(["npm", "ci", "--no-audit", "--no-fund"], game_dir)
+    if needs_npm_ci(game_dir):
+        run(["npm", "ci", "--no-audit", "--no-fund"], game_dir)
+        (game_dir / "node_modules" / INSTALL_MARKER).write_text(
+            install_fingerprint(game_dir) + "\n", encoding="utf-8", newline="\n")
+    else:
+        print(f"{game_dir.name}: node_modules matches package-lock.json, so no npm ci (CI always runs it)",
+              flush=True)
     run(["npm", "run", "build"], game_dir)
     built = game_dir / "dist"
     for path in sorted(p for p in built.rglob("*") if p.is_file()):

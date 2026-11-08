@@ -32,7 +32,9 @@ header. Game pages are published exactly as packed. Why: `docs/decisions/0002` a
 - Preview: `python3 -m http.server -d dist`, then open http://localhost:8000/projects/games/
 - Tests: `python3 -m unittest discover -s tools -p 'test_*.py'`
 - The dungeon crawler is a Vite and React app in `games/dungeon-crawler/`. `tools/pack.py`
-  builds it with npm (Node 22 in CI); its build output is never committed.
+  builds it with npm (Node 22 in CI); its build output is never committed. Locally it runs
+  `npm ci` only when `node_modules` wasn't installed from the current `package.json` and
+  `package-lock.json`, which makes a check take seconds; CI always runs it.
 
 ## Adding a game
 

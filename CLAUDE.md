@@ -202,7 +202,9 @@ Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies 
 
 ### Commands
 
-- Install: nothing for most games. `tools/pack.py` runs `npm ci` for the dungeon crawler.
+- Install: nothing for most games. `tools/pack.py` runs `npm ci` for the dungeon crawler when
+  its `node_modules` wasn't installed from the current `package.json` and `package-lock.json`,
+  and always in CI.
 - Run locally: `python3 tools/pack.py`, then `python3 -m http.server -d dist` and open
   http://localhost:8000/projects/games/ (games use their real addresses; `/favicon.svg` comes
   from the blog, so it's missing here).
