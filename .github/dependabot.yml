@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # Security updates for the dungeon crawler's npm packages come from the repository's
+  # Dependabot security updates setting, not from this file.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

@@ -1,20 +1,27 @@
-name: Games registry
+name: Games
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  validate:
+  check:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - name: Test metadata contracts and source immutability
-        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
-      - name: Generate catalogue without changing authored files
-        run: |
-          python3 .github/scripts/build_games_registry.py
-          git diff --exit-code
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: games/dungeon-crawler/package-lock.json
+      - name: Test the tools
+        run: python3 -m unittest discover -s tools -p 'test_*.py'
+      - name: Build and pack every game (as a release would)
+        run: python3 tools/pack.py
+      - name: Check the dungeon crawler build
+        run: python3 tools/check_dungeon_build.py
+      - name: Packing changes no committed file
+        run: git diff --exit-code

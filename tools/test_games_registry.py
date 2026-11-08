@@ -1,7 +1,6 @@
 """Metadata validation and build invariants; uses fixtures, never edits game sources."""
 import contextlib
 import hashlib
-import importlib.util
 import io
 import json
 from pathlib import Path
@@ -62,23 +61,6 @@ class RegistryTests(unittest.TestCase):
             self.assertEqual(len(first), len(registry.find_game_dirs()))
             self.assertEqual(len({g['path'] for g in first}), len(first))
         self.assertEqual(before, hashes())
-
-
-class ReportTests(unittest.TestCase):
-    def test_generator_keeps_redirect_and_writes_latest_and_date(self):
-        path = registry.REPO_ROOT / 'projects/ai-trending/fetch_trending.py'
-        spec = importlib.util.spec_from_file_location('trending', path)
-        trending = importlib.util.module_from_spec(spec); spec.loader.exec_module(trending)
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp); (root / 'index.html').write_text('redirect sentinel')
-            with patch.object(trending, 'OUTPUT_DIR', tmp), patch.object(trending, 'HTML_FILE', str(root / 'latest/index.html')):
-                trending.generate_dashboard([])
-            self.assertEqual((root / 'index.html').read_text(), 'redirect sentinel')
-            outputs = list(root.glob('*/index.html')); self.assertEqual(len(outputs), 2)
-            for output in outputs:
-                text = output.read_text()
-                self.assertTrue(text.startswith('---\nlayout: project\n'))
-                self.assertNotIn('<html', text); self.assertNotIn('<body', text)
 
 
 if __name__ == '__main__': unittest.main()

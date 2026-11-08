@@ -1,11 +1,30 @@
 #!/usr/bin/env python3
-"""Verify Vite's generated entrypoint and its deployed asset references."""
-from pathlib import Path
-from check_rendered_pages import Page
+"""Verify the packed dungeon crawler: Vite's entrypoint and its asset references.
 
-root = Path(__file__).resolve().parents[2]
-game = root / 'projects/games/dungeon-crawler'
-text = (game / 'index.html').read_text()
+Run after tools/pack.py; it reads dist/projects/games/dungeon-crawler/.
+"""
+from html.parser import HTMLParser
+from pathlib import Path
+
+SITE = Path(__file__).resolve().parents[1] / 'dist'
+GAME = SITE / 'projects/games/dungeon-crawler'
+
+
+class Page(HTMLParser):
+    def __init__(self, text):
+        super().__init__(convert_charrefs=True)
+        self.ids = {}; self.assets = []
+        self.feed(text)
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if 'id' in attrs:
+            key = attrs['id']; self.ids[key] = self.ids.get(key, 0) + 1
+        if tag == 'script' and attrs.get('src'): self.assets.append(attrs['src'])
+        if tag == 'link' and attrs.get('rel') == 'stylesheet': self.assets.append(attrs['href'])
+
+
+text = (GAME / 'index.html').read_text(encoding='utf-8')
 page = Page(text)
 assert page.ids.get('root') == 1, 'React mount is missing or duplicated'
 assert not any(token in text for token in ('bl-nav', 'nav-autohide', '/src/main.tsx'))
@@ -15,5 +34,5 @@ assert any(asset.endswith('.css') for asset in page.assets), 'Missing bundled CS
 for asset in page.assets:
     if asset.startswith('https://'): continue
     assert asset.startswith('/projects/games/dungeon-crawler/assets/'), asset
-    assert (root / asset.lstrip('/')).is_file(), f'Missing {asset}'
+    assert (SITE / asset.lstrip('/')).is_file(), f'Missing {asset}'
 print('Dungeon React mount and deployed asset paths verified.')

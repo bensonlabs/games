@@ -1,6 +1,7 @@
 # Site-integration addendum for game-build prompts
 
-Build a standalone game at `projects/games/<slug>/index.html` with its own complete
+Build a standalone game at `games/<slug>/index.html` (published at
+`/projects/games/<slug>/` on bensonlabs.org) with its own complete
 HTML document, styles, and scripts. Do not add Jekyll front matter, a site-header
 snippet, canonical markers, or navigation auto-hide machinery. No screen corner
 is reserved for the website: place game controls where they work best on desktop
@@ -13,13 +14,11 @@ and a one-line `description`. When applicable, end the description with
 For compiled games use `game.json`, as described in `GAME_METADATA.md`. Keep Vite's
 source input and deployed base path; generated HTML is output, not metadata input.
 
-Run `python3 .github/scripts/build_games_registry.py` to validate and generate
-ignored `_data/games.json` for Jekyll. Do not rewrite the authored catalogue
-fragment or stage generated JSON. CI builds the catalogue in the Pages artifact
-job without auto-commits or navigation injection.
+Run `python3 tools/pack.py` to validate the metadata and build the packed site in
+`dist/projects/games/`, where the catalogue is generated; nothing generated is
+committed. Files a browser never needs (docs, sources, lockfiles) are left out of
+a release; list a game's other development files in its `.publishignore`.
 
-Normal projects outside the standalone game directories instead use
-`layout: project` with body content only, head elements in the `head` front matter
-literal, and body attributes in `body_attributes`. They inherit the sole header
-from `_includes/nav.html`, links from `_data/navigation.yml`, and dedicated shared
-header CSS/JavaScript. Never nest a full HTML document inside a layout.
+The catalogue page (`games/index.html`) is the one page that gets the site
+header: the blog wraps it when it assembles bensonlabs.org. Keep it a complete
+standalone HTML document, and keep its games-list placeholder.

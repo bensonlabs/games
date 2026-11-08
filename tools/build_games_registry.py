@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate authored game metadata and generate ignored _data/games.json.
+"""Validate authored game metadata and build the catalogue list (dist/games.json).
 
 Precedence: game.json > index.source.html > index.html. Generated compiled
 entrypoints are never metadata inputs. Partial metadata uses legacy fallbacks.
@@ -10,9 +10,9 @@ import re
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-GAMES_DIR = REPO_ROOT / "projects" / "games"
-OUTPUT_FILE = REPO_ROOT / "_data" / "games.json"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+GAMES_DIR = REPO_ROOT / "games"
+OUTPUT_FILE = REPO_ROOT / "dist" / "games.json"
 
 META_BLOCK_RE = re.compile(r"<!--\s*bl-game-meta(.*?)-->", re.DOTALL)
 FIELD_RE = re.compile(r"^(title|emoji|order|description):\s*(.*)$")

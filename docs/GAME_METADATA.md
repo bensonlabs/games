@@ -1,10 +1,9 @@
 # Game catalogue metadata
 
-The read-only generator `.github/scripts/build_games_registry.py` creates ignored
-`_data/games.json`. Run it before Jekyll; `projects/games/index.html` is an authored
-layout-backed catalogue fragment that consumes this data. Never stage the JSON
-or rewrite individual games to register them. Pages generates the catalogue in
-its own build; deployment does not depend on bot commits.
+`tools/build_games_registry.py` validates every game's metadata and builds the
+catalogue list; `tools/pack.py` writes that list into the catalogue page
+(`games/index.html`) in the packed release. Nothing generated is committed, and
+games are never rewritten to register them.
 
 ## Authored sources and precedence
 
