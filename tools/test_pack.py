@@ -1,6 +1,10 @@
 """Tests for tools/pack.py: what a release contains, the catalogue, the checks and the release file."""
+import contextlib
 import hashlib
+import html.parser
+import io
 import json
+import os
 import tarfile
 import tempfile
 import unittest
@@ -9,6 +13,27 @@ from unittest.mock import patch
 
 import html_checks
 import pack
+
+
+# A page the checks accept: every published page needs one meta description.
+DESCRIBED = '<meta name="description" content="Steer a ship.">'
+
+
+class Links(html.parser.HTMLParser):
+    """The (href, text) of each link in a page."""
+
+    def __init__(self, text):
+        super().__init__(convert_charrefs=True)
+        self.links = []
+        self.feed(text)
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.links.append([dict(attrs).get('href'), ''])
+
+    def handle_data(self, data):
+        if self.links and self.lasttag == 'a':
+            self.links[-1][1] += data
 
 
 def make(root, names, content='x'):
@@ -42,26 +67,41 @@ class PublishRules(unittest.TestCase):
 
 
 class Catalogue(unittest.TestCase):
-    def test_games_list_is_written_in_and_cannot_close_the_script(self):
-        games = [{'title': 'A</script>', 'description': 'Dark fantasy ⚔️', 'emoji': '🎮', 'path': '/projects/games/a/'}]
+    TEMPLATE = ('<noscript><ul>' + pack.NOSCRIPT_PLACEHOLDER + '</ul></noscript>'
+                '<script>const GAMES = ' + pack.PLACEHOLDER + ';</script>')
+
+    def write(self, games, template=TEMPLATE):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            make(root, ['games/index.html'], '<script>const GAMES = ' + pack.PLACEHOLDER + ';</script>')
+            make(root, ['games/index.html'], template)
             with patch.object(pack, 'GAMES_DIR', root / 'games'), patch.object(pack, 'OUT', root / 'out'):
                 pack.write_catalogue(games)
-            text = (root / 'out' / 'index.html').read_text(encoding='utf-8')
+            return (root / 'out' / 'index.html').read_text(encoding='utf-8')
+
+    def test_games_list_is_written_in_and_cannot_close_the_script(self):
+        games = [{'title': 'A</script>', 'description': 'Dark fantasy ⚔️', 'emoji': '🎮', 'path': '/projects/games/a/'}]
+        text = self.write(games)
         self.assertEqual(text.count('</script>'), 1)
-        data = text[len('<script>const GAMES = '):-len(';</script>')]
+        data = text.split('<script>const GAMES = ')[1][:-len(';</script>')]
         self.assertEqual(json.loads(data), games)
         self.assertIn('⚔️', data)  # written as-is, as Jekyll's jsonify did
 
-    def test_template_must_have_the_placeholder(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            make(root, ['games/index.html'], '<script>const GAMES = [];</script>')
-            with patch.object(pack, 'GAMES_DIR', root / 'games'), patch.object(pack, 'OUT', root / 'out'):
-                with self.assertRaises(SystemExit):
-                    pack.write_catalogue([])
+    def test_visitors_without_javascript_get_a_link_to_every_game(self):
+        games = [{'title': 'A</script>', 'description': 'Uses {{ liquid }} & <b>', 'emoji': '🎮',
+                  'path': '/projects/games/a/'},
+                 {'title': 'B', 'description': 'Second.', 'emoji': '🚀', 'path': '/projects/games/b/'}]
+        text = self.write(games)
+        listed = text.split('<ul>')[1].split('</ul>')[0]
+        self.assertEqual(Links(listed).links, [['/projects/games/a/', 'A</script>'], ['/projects/games/b/', 'B']])
+        self.assertNotIn('<b>', listed)
+        self.assertNotIn('{{', listed)  # the blog runs the catalogue's body through Liquid
+        self.assertIn('Uses &#123;&#123; liquid &#125;&#125; &amp; &lt;b&gt;', listed)
+
+    def test_template_must_have_both_placeholders(self):
+        for template in ('<script>const GAMES = [];</script>' + pack.NOSCRIPT_PLACEHOLDER,
+                         '<script>const GAMES = ' + pack.PLACEHOLDER + ';</script>'):
+            with self.subTest(template=template), self.assertRaises(SystemExit):
+                self.write([], template)
 
 
 class Checks(unittest.TestCase):
@@ -69,16 +109,48 @@ class Checks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp) / 'dist'
             out = dist / 'projects' / 'games'
-            make(out, ['index.html', 'ok/index.html'])
-            make(out, ['nav/index.html'], '<nav id="bl-nav"></nav>')
-            make(out, ['front/index.html'], '---\nlayout: project\n---\n')
-            make(out, ['big/index.html'], 'x' * (pack.MAX_FILE_BYTES + 1))
+            make(out, ['index.html', 'ok/index.html'], DESCRIBED)
+            make(out, ['nav/index.html'], DESCRIBED + '<nav id="bl-nav"></nav>')
+            make(out, ['front/index.html'], '---\nlayout: project\n---\n' + DESCRIBED)
+            make(out, ['big/index.html'], DESCRIBED + 'x' * pack.MAX_FILE_BYTES)
             games = [{'path': f'/projects/games/{slug}/'} for slug in ('ok', 'nav', 'front', 'big', 'missing')]
             with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
                 errors = pack.check(games)
         self.assertEqual(len(errors), 4, errors)
         for expected in ('/projects/games/missing/', 'nav/index.html', 'front/index.html', 'big/index.html'):
             self.assertTrue(any(expected in error for error in errors), expected)
+
+    def test_every_page_needs_one_meta_description(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = Path(tmp) / 'dist'
+            out = dist / 'projects' / 'games'
+            make(out, ['index.html', 'ok/index.html'], '<head>' + DESCRIBED + '</head>')
+            make(out, ['ok/not-a-page.js'], 'const x = 1;')
+            make(out, ['none/index.html', 'ok/version-2.html'], '<head><title>No description</title></head>')
+            make(out, ['empty/index.html'], '<meta name="description" content=" ">')
+            make(out, ['two/index.html'], DESCRIBED + '<meta name="Description" content="Again.">')
+            games = [{'path': f'/projects/games/{slug}/'} for slug in ('ok', 'none', 'empty', 'two')]
+            with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
+                errors = pack.check(games)
+        self.assertEqual(sorted(error.split(':')[0] for error in errors),
+                         ['empty/index.html', 'none/index.html', 'ok/version-2.html', 'two/index.html'])
+        self.assertIn("(it's empty)", ''.join(errors))
+        self.assertIn('(found 2)', ''.join(errors))
+
+    def test_flags_a_game_over_the_size_limit_for_one_game(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = Path(tmp) / 'dist'
+            out = dist / 'projects' / 'games'
+            make(out, ['index.html'], 'x' * pack.MAX_FILE_BYTES)  # the catalogue isn't a game
+            make(out, ['heavy/a.webp', 'heavy/b.webp'], 'x' * 600 * 1024)  # each file is under its limit
+            make(out, ['heavy/index.html'])
+            make(out, ['full/index.html'], 'x' * (pack.MAX_GAME_BYTES - pack.MAX_FILE_BYTES))
+            make(out, ['full/a.webp'], 'x' * pack.MAX_FILE_BYTES)  # exactly at the limit is fine
+            games = [{'path': '/projects/games/heavy/'}, {'path': '/projects/games/full/'}]
+            with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
+                errors = [error for error in pack.check(games) if 'in all' in error]
+        self.assertEqual(errors, ['heavy: 1200 KB in all, over the 1 MB limit for one game: '
+                                  'shrink its images, sounds or fonts'])
 
 
 class SiteHeader(unittest.TestCase):
@@ -97,10 +169,139 @@ class SiteHeader(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp) / 'dist'
             out = dist / 'projects' / 'games'
-            make(out, ['index.html'])
-            make(out, ['ok/index.html'], '<html><body><!-- not a bl-nav --><canvas></canvas></body></html>')
+            make(out, ['index.html'], DESCRIBED)
+            make(out, ['ok/index.html'], '<html><head>' + DESCRIBED + '</head>'
+                                         '<body><!-- not a bl-nav --><canvas></canvas></body></html>')
             with patch.object(pack, 'DIST', dist), patch.object(pack, 'OUT', out):
                 self.assertEqual(pack.check([{'path': '/projects/games/ok/'}]), [])
+
+
+class GamesLink(unittest.TestCase):
+    """The "← Games" link pack.py adds to each game page that has no way back to the catalogue."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.out = Path(self.tmp.name) / 'projects' / 'games'
+        self.patch = patch.object(pack, 'OUT', self.out)
+        self.patch.start()
+
+    def tearDown(self):
+        self.patch.stop()
+        self.tmp.cleanup()
+
+    def add(self, pages, setting='top-left'):
+        """Pack pages into a game folder, add the links, and return (errors, the pages after)."""
+        for name, text in pages.items():
+            make(self.out / 'game', [name], text)
+        errors = pack.add_games_links(self.out / 'game', setting)
+        return errors, {name: (self.out / 'game' / name).read_text(encoding='utf-8') for name in pages}
+
+    def test_goes_in_just_before_the_end_of_the_body_and_nothing_else_changes(self):
+        page = ('<html><body><canvas></canvas>\n<script>const s = "</body>";</script>\n'
+                '</body>\n</html>\n')
+        errors, after = self.add({'index.html': page, 'v2.html': '<p>no body end tag'})
+        self.assertEqual(errors, [])
+        link = pack.games_link_html('top-left')
+        self.assertEqual(after['index.html'], page.replace('</body>\n</html>', link + '\n</body>\n</html>'))
+        self.assertEqual(after['v2.html'], '<p>no body end tag' + link + '\n')
+        parsed = html_checks.Page(after['index.html'])
+        self.assertEqual(parsed.links, ['/projects/games/'])
+        self.assertEqual(parsed.site_header, [])  # nothing the blog would take for its header
+
+    def test_pages_that_already_link_to_the_catalogue_are_left_alone(self):
+        for href in ('/projects/games/', '/projects/games', '../', '../index.html',
+                     'https://bensonlabs.org/projects/games/', '//bensonlabs.org/projects/games/'):
+            with self.subTest(href=href):
+                page = f'<body><a href="{href}">Back</a></body>'
+                self.assertEqual(self.add({'index.html': page}), ([], {'index.html': page}))
+        _, after = self.add({'index.html': '<body><a href="/projects/">Projects</a></body>'})
+        self.assertIn('data-games-link', after['index.html'])
+
+    def test_off_leaves_every_page_alone(self):
+        page = '<body></body>'
+        self.assertEqual(self.add({'index.html': page, 'v2.html': page}, 'off'),
+                         ([], {'index.html': page, 'v2.html': page}))
+
+    def test_the_setting_picks_the_corner_and_the_distance_from_the_edge(self):
+        default = pack.games_link_html('top-left')
+        self.assertIn('top:calc(8px + env(safe-area-inset-top, 0px))', default)
+        self.assertIn('left:calc(8px + env(safe-area-inset-left, 0px))', default)
+        moved = pack.games_link_html('bottom-right 92px')
+        self.assertIn('bottom:calc(92px + env(safe-area-inset-bottom, 0px))', moved)
+        self.assertIn('right:calc(8px + env(safe-area-inset-right, 0px))', moved)
+        self.assertNotIn('top:', moved)
+
+    def test_a_policy_that_blocks_inline_styles_stops_the_pack(self):
+        def page(policy):
+            return f'<head><meta http-equiv="Content-Security-Policy" content="{policy}"></head><body></body>'
+        for policy in ("default-src 'self'", "default-src 'self'; style-src 'self'",
+                       "style-src 'self' 'unsafe-inline' 'nonce-abc'", "style-src-attr 'none'"):
+            with self.subTest(policy=policy):
+                errors, after = self.add({'index.html': page(policy)})
+                self.assertEqual(len(errors), 1)
+                self.assertIn('blocks inline styles', errors[0])
+                self.assertNotIn('data-games-link', after['index.html'])
+        for policy in ("default-src 'self'; style-src 'self' 'unsafe-inline'", "script-src 'self'",
+                       "style-src 'self'; style-src-attr 'unsafe-inline'"):
+            with self.subTest(policy=policy):
+                errors, after = self.add({'index.html': page(policy)})
+                self.assertEqual(errors, [])
+                self.assertIn('data-games-link', after['index.html'])
+
+
+class NpmInstall(unittest.TestCase):
+    """npm ci runs in CI, and locally only when node_modules wasn't installed from these files."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.game = Path(self.tmp.name)
+        make(self.game, ['package.json'], '{"name": "game"}')
+        make(self.game, ['package-lock.json'], '{"lockfileVersion": 3}')
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def installed(self):
+        make(self.game, ['node_modules/' + pack.INSTALL_MARKER], pack.install_fingerprint(self.game) + '\n')
+
+    def test_runs_when_nothing_says_what_node_modules_holds(self):
+        self.assertTrue(pack.needs_npm_ci(self.game, environ={}))
+        make(self.game, ['node_modules/vite/index.js'])  # installed some other way
+        self.assertTrue(pack.needs_npm_ci(self.game, environ={}))
+
+    def test_skipped_when_node_modules_matches(self):
+        self.installed()
+        self.assertFalse(pack.needs_npm_ci(self.game, environ={}))
+
+    def test_runs_again_after_the_lockfile_or_package_json_changes(self):
+        for name in ('package-lock.json', 'package.json'):
+            with self.subTest(changed=name):
+                self.installed()
+                (self.game / name).write_text('{"changed": true}', encoding='utf-8')
+                self.assertTrue(pack.needs_npm_ci(self.game, environ={}))
+
+    def test_always_runs_in_ci(self):
+        self.installed()
+        self.assertTrue(pack.needs_npm_ci(self.game, environ={'CI': 'true'}))
+
+    def test_a_build_records_the_install_and_the_next_build_skips_it(self):
+        commands = []
+
+        def fake_run(command, cwd):
+            commands.append(' '.join(command[:2]))
+            if command[:2] == ['npm', 'ci']:
+                make(cwd, ['node_modules/vite/index.js'])
+            else:
+                make(cwd, ['dist/index.source.html'], '<html></html>')
+
+        output = io.StringIO()
+        with patch.object(pack, 'run', fake_run), patch.dict(os.environ), contextlib.redirect_stdout(output):
+            os.environ.pop('CI', None)
+            pack.pack_built_game(self.game, self.game / 'out')
+            pack.pack_built_game(self.game, self.game / 'out')
+        self.assertEqual(commands, ['npm ci', 'npm run', 'npm run'])
+        self.assertIn('so no npm ci', output.getvalue())
+        self.assertTrue((self.game / 'out' / 'index.html').is_file())
 
 
 class Release(unittest.TestCase):

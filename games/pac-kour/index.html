@@ -6,10 +6,8 @@
     Content-Security-Policy:
     - 'unsafe-inline' is required for script-src and style-src because all scripts
       and styles are inline. Refactoring them to external files would allow removing it.
-    - frame-ancestors 'none' prevents clickjacking but is ignored in <meta> tags per spec;
-      it only works via an HTTP response header, which GitHub Pages does not support.
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
   <!-- bl-game-meta
   title: Pac-Kour
   emoji: 🟡
@@ -18,6 +16,7 @@
   -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Pac-Kour — Benson Labs</title>
+  <meta name="description" content="Sprint, wall-jump, and clear every pellet in a compact platforming maze where Pac-Man momentum matters as much as your route.">
   <style>
     :root {
       --bg: #1e1e1e;

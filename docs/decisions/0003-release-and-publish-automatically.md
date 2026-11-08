@@ -1,6 +1,6 @@
 # ADR 3: Release and publish automatically
 
-**Date:** 2026-11-08
+**Date:** 2026-11-07
 **Status:** accepted (changes the consequences of ADR 2; its decision stands)
 
 ## Context
@@ -8,7 +8,7 @@
 After the split (ADR 2), adding a game took about eight steps across two repos: a PR, a merge, a
 tag, the release, a pin change in the blog, its PR and its merge. Justin's main wish is an
 effortless way to add a game and its catalogue card. He is the site's only user, and he chose to
-have a new game live within minutes (2026-11-08).
+have a new game live within minutes (2026-11-07).
 
 ## Decision
 

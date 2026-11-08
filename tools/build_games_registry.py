@@ -15,7 +15,7 @@ GAMES_DIR = REPO_ROOT / "games"
 OUTPUT_FILE = REPO_ROOT / "dist" / "games.json"
 
 META_BLOCK_RE = re.compile(r"<!--\s*bl-game-meta(.*?)-->", re.DOTALL)
-FIELD_RE = re.compile(r"^(title|emoji|order|description):\s*(.*)$")
+FIELD_RE = re.compile(r"^(title|emoji|order|description|games-link):\s*(.*)$")
 TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 META_DESCRIPTION_RE = re.compile(
     r"<meta[^>]+name=[\"']description[\"'][^>]+content=[\"'](.*?)[\"'][^>]*>",
@@ -29,6 +29,13 @@ META_DESCRIPTION_RE_ALT = re.compile(
 REQUIRED_FIELDS = ("title", "emoji", "order", "description")
 DEFAULT_EMOJI = "🎮"
 DEFAULT_ORDER = 999
+# Optional, and not part of the card: where tools/pack.py puts the game's "← Games" link
+# back to the catalogue: a corner, optionally followed by its distance in px from the top
+# (or bottom) edge, to clear the game's own controls ("top-left 68px"); or "off" for a
+# game with its own way back.
+GAMES_LINK_FIELD = "games-link"
+GAMES_LINK_RE = re.compile(r"(?P<corner>(?:top|bottom)-(?:left|right))(?: (?P<distance>\d{1,4})px)?|off")
+DEFAULT_GAMES_LINK = "top-left"
 
 def find_game_dirs():
     return sorted({p.parent for name in ("index.html", "index.source.html", "game.json")
@@ -124,6 +131,10 @@ def merge_fields(slug, text, fields):
     for field in ("title", "emoji", "description"):
         if not isinstance(merged[field], str):
             return None, f"{field} must be a string"
+    link = (fields or {}).get(GAMES_LINK_FIELD, "")
+    if link != "" and not (isinstance(link, str) and GAMES_LINK_RE.fullmatch(link)):
+        return None, (f"{GAMES_LINK_FIELD} must be top-left, top-right, bottom-left or bottom-right, "
+                      f"optionally with a distance such as \"top-left 68px\", or off; got {link!r}")
     if isinstance(merged["order"], bool) or not re.fullmatch(r"[+-]?\d+", str(merged["order"])):
         return None, f"order must be an integer, got {merged['order']!r}"
     try:
@@ -162,7 +173,7 @@ def read_metadata(game_dir):
         fields = json.loads(sidecar.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
         if not isinstance(fields, dict):
             raise ValueError("game.json must contain an object")
-        unknown = fields.keys() - set(REQUIRED_FIELDS)
+        unknown = fields.keys() - {*REQUIRED_FIELDS, GAMES_LINK_FIELD}
         if unknown:
             raise ValueError(f"unknown fields: {', '.join(sorted(unknown))}")
         for key, value in fields.items():
@@ -170,6 +181,12 @@ def read_metadata(game_dir):
                 raise ValueError(f"{key} cannot be null; omit it to use a fallback")
         source = sidecar
     return source, text, fields
+
+
+def games_link(game_dir):
+    """Where the game's "← Games" link goes (top-left by default), or "off"."""
+    _, _, fields = read_metadata(game_dir)
+    return (fields or {}).get(GAMES_LINK_FIELD) or DEFAULT_GAMES_LINK
 
 
 def build_games_array():

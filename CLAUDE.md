@@ -172,8 +172,9 @@ Doc (where each convention came from): `conventions.md`.
 ### About this project
 
 - What it owns: every game published at bensonlabs.org/projects/games/, and the games
-  catalogue page there. The blog (bensonlabs/blog) assembles the site and owns everything
-  else, including the site header it wraps around the catalogue.
+  catalogue page there. bensonlabs/projects owns the rest of /projects/. The blog
+  (bensonlabs/blog) owns its own pages and the site header it wraps around the catalogue,
+  and assembles and deploys the site.
 - Lifecycle stage (experiment, project, maintained, product, archived): project. A
   personal games collection with one user; split out of the blog on 2026-11-07.
 
@@ -194,7 +195,8 @@ Listed 2026-11-07 (Justin's choice of how rules fit a project; architectureOS AD
 |---|---|
 | Adding or changing a game | Use the `add-game` skill; it pushes straight to `main` and the game goes live by itself. Keep it a standalone page in `games/<slug>/`: its own complete HTML document, no front matter, no site header (`bl-nav`). Give it metadata as `docs/GAME_METADATA.md` describes; `docs/AGENT_PROMPT_ADDENDUM.md` is the brief for building one. |
 | A game needs a file the site shouldn't publish (dev scripts, sources) | Add a glob to the game's `.publishignore`. Docs, Rust, TOML, TypeScript, shell scripts, lockfiles, package and metadata files are never published anyway. |
-| Adding images, sounds or fonts | No published file may be over 750 KB: size images to how they're drawn. |
+| Adding images, sounds or fonts | No published file may be over 750 KB, and no game over 1 MB in all: size images to how they're drawn, and use WebP (or JPEG) for pictures rather than PNG. |
+| A game page needs its way back to the catalogue | `tools/pack.py` adds a small "← Games" link in the top-left corner of every game page that doesn't link to `/projects/games/` (owner decision, 2026-11-08). If it covers controls, score, menus or touch areas at 1280x800 or 390x844, set `games-link` in the game's metadata to a free corner, with a distance from the edge if needed (`top-left 68px`), or `off` when the game has its own way back (`docs/GAME_METADATA.md`). |
 | Changing how a game saves progress (core rule 11) | Keep existing saves loading: read the old format or migrate it. Never silently reset a player's saved progress or high scores. |
 | The dungeon crawler | Its build output (`index.html`, `assets/`) is made by `tools/pack.py` and never committed. Vite's `base` must stay `/projects/games/dungeon-crawler/`. |
 
@@ -202,12 +204,17 @@ Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies 
 
 ### Commands
 
-- Install: nothing for most games. `tools/pack.py` runs `npm ci` for the dungeon crawler.
+On Windows, `python3` isn't on the PATH: run the same commands with `py`.
+
+- Install: nothing for most games. `tools/pack.py` runs `npm ci` for the dungeon crawler when
+  its `node_modules` wasn't installed from the current `package.json` and `package-lock.json`,
+  and always in CI.
 - Run locally: `python3 tools/pack.py`, then `python3 -m http.server -d dist` and open
   http://localhost:8000/projects/games/ (games use their real addresses; `/favicon.svg` comes
   from the blog, so it's missing here).
 - Tests, type check, lint (wrap-up runs these): `python3 -m unittest discover -s tools -p 'test_*.py'`,
-  `python3 tools/pack.py`, `python3 tools/check_dungeon_build.py`.
+  `python3 tools/pack.py`, `python3 tools/check_dungeon_build.py`. The tests include
+  `tools/test_docs.py`: every repo path the docs cite in backticks must exist.
 - Push reminder, once per clone: `node .claude/hooks/push-reminder.mjs --install`
 
 ### Environments
@@ -220,7 +227,7 @@ Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies 
 ### Branches, review and release
 
 - PRs go to (target branch): `main`. Adding, changing or removing a game goes straight to `main`
-  (owner decision, 2026-11-08); tools and workflows go through a PR.
+  (owner decision, 2026-11-07); tools and workflows go through a PR.
 - Branch names (default `feature/<short-name>`): the default.
 - Bring a branch up to date by (merge or rebase): merge.
 - Reviewer: with no second reviewer, the person reviews the whole diff themselves before it merges.

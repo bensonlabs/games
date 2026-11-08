@@ -26,7 +26,7 @@ const COLORS = [
 const DOG_TILE_SOURCES = Array.from(
   { length: 12 },
   (_, index) =>
-    `dog_tiles_individual/dog_tile_${String(index + 1).padStart(2, "0")}.png`,
+    `dog_tiles_individual/dog_tile_${String(index + 1).padStart(2, "0")}.webp`,
 );
 const DOG_TILE_VARIANTS = [
   {

@@ -15,21 +15,43 @@ def _is_header_name(name: str) -> bool:
 
 
 class Page(HTMLParser):
-    """Element ids, linked scripts and stylesheets, and any trace of the blog's site header."""
+    """Element ids, linked scripts and stylesheets, links, meta descriptions, Content-Security-
+    Policy meta tags, where the body ends, and any trace of the blog's site header."""
 
     def __init__(self, text: str):
         super().__init__(convert_charrefs=True)
         self.ids: dict[str, int] = {}
         self.assets: list[str] = []
+        self.links: list[str] = []  # the href of every <a>
+        self.descriptions: list[str] = []
+        self.policies: list[str] = []  # the content of every <meta http-equiv="Content-Security-Policy">
+        self.body_end: int | None = None  # where in the text the last </body> starts
         self.site_header: list[str] = []
+        # Where each line starts, to turn the parser's (line, column) into an index in the text.
+        self._line_starts = [0]
+        newline = text.find("\n")
+        while newline != -1:
+            self._line_starts.append(newline + 1)
+            newline = text.find("\n", newline + 1)
         self.feed(text)
         self.close()
+
+    def handle_endtag(self, tag):
+        if tag == "body":
+            line, column = self.getpos()
+            self.body_end = self._line_starts[line - 1] + column
 
     def handle_starttag(self, tag, attrs):
         attrs = {name: value or "" for name, value in attrs}
         element_id = attrs.get("id", "")
         if element_id:
             self.ids[element_id] = self.ids.get(element_id, 0) + 1
+        if tag == "meta" and attrs.get("name", "").lower() == "description":
+            self.descriptions.append(attrs.get("content", "").strip())
+        if tag == "meta" and attrs.get("http-equiv", "").lower() == "content-security-policy":
+            self.policies.append(attrs.get("content", ""))
+        if tag == "a" and attrs.get("href"):
+            self.links.append(attrs["href"])
         for name in [element_id, *attrs.get("class", "").split()]:
             if name and _is_header_name(name):
                 self.site_header.append(f'<{tag}> "{name}"')

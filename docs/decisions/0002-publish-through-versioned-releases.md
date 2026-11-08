@@ -1,7 +1,8 @@
 # ADR 2: Publish the games through versioned releases
 
 **Date:** 2026-11-07
-**Status:** accepted
+**Status:** accepted; its first consequence (a release and a pin change by hand for every
+change) was replaced by ADR 3, which releases and pins automatically. The decision stands.
 
 ## Context
 
