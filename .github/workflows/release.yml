@@ -1,5 +1,5 @@
 name: Release
-# Every push to main that changes what bensonlabs.org would show publishes the next release
+# Every push to main that changes what bensonlabs.org/projects/ would show publishes the next release
 # (v1.0.3 -> v1.0.4) and asks the blog to pin it; the blog deploys after its own checks.
 # Packs are reproducible, so a push that changes nothing the site shows publishes nothing.
 on:
@@ -24,7 +24,7 @@ jobs:
           cache-dependency-path: site/games/dungeon-crawler/package-lock.json
       - name: Test the tools
         run: python3 -m unittest discover -s tools -p 'test_*.py'
-      - name: Build and pack every game
+      - name: Build and pack everything under /projects/
         run: python3 tools/pack.py --version v0.0.0
       - name: Check the dungeon crawler build
         run: python3 tools/check_dungeon_build.py
@@ -38,7 +38,7 @@ jobs:
           if [ -n "$latest" ]; then
             published=$(gh release download "$latest" --pattern '*.sha256' --output - | cut -d' ' -f1)
           fi
-          version=$(python3 tools/next_version.py --packed dist/games-v0.0.0.tar.gz --latest "$latest" --published-sha "$published")
+          version=$(python3 tools/next_version.py --packed dist/projects-v0.0.0.tar.gz --latest "$latest" --published-sha "$published")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if [ -z "$version" ]; then echo "Nothing the site shows changed since $latest, so no release."; else echo "New release: $version (after ${latest:-none})."; fi
       - name: Publish the release
@@ -47,11 +47,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.plan.outputs.version }}
         run: |
-          name="games-$VERSION.tar.gz"
+          name="projects-$VERSION.tar.gz"
           sha=$(cut -d' ' -f1 "dist/$name.sha256")
           gh release create "$VERSION" "dist/$name" "dist/$name.sha256" --target "$GITHUB_SHA" \
             --title "$VERSION" \
-            --notes "All games, packed for bensonlabs.org/projects/games/ from $GITHUB_SHA. sha256 of $name: $sha. The blog pins it and deploys after its checks (its Update components workflow)."
+            --notes "Everything under bensonlabs.org/projects/, packed from $GITHUB_SHA. sha256 of $name: $sha. The blog pins it and deploys after its checks (its Update components workflow)."
       - name: Tell the blog to publish it
         if: steps.plan.outputs.version != ''
         env:
@@ -62,5 +62,5 @@ jobs:
             echo "::notice title=Blog not told::BLOG_DISPATCH_TOKEN isn't set, so the blog picks up $VERSION at its daily check. To publish it now, run the blog's Update components workflow."
             exit 0
           fi
-          gh workflow run update-components.yml -R bensonlabs/blog -f component=games -f version="$VERSION"
+          gh workflow run update-components.yml -R bensonlabs/blog -f component=projects -f version="$VERSION"
           echo "Asked the blog to pin $VERSION; it deploys after its checks."

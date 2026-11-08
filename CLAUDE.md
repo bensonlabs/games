@@ -171,11 +171,13 @@ Doc (where each convention came from): `conventions.md`.
 
 ### About this project
 
-- What it owns: every game published at bensonlabs.org/projects/games/, and the games
-  catalogue page there. The blog (bensonlabs/blog) assembles the site and owns everything
-  else, including the site header it wraps around the catalogue.
+- What it owns: everything published under bensonlabs.org/projects/: the Projects page, Games,
+  Workouts, Bootstraps and each project. `site/` mirrors that address. The blog
+  (bensonlabs/blog) assembles the site and owns the rest: posts, About and the site header it
+  wraps around the pages that get one.
 - Lifecycle stage (experiment, project, maintained, product, archived): project. A
-  personal games collection with one user; split out of the blog on 2026-11-07.
+  personal site's projects with one user; split out of the blog on 2026-11-07 (as bensonlabs/games),
+  everything under /projects/ since 2026-11-08 (ADR 4).
 
 ### Core rules not used here
 
@@ -188,12 +190,12 @@ Doc (where each convention came from): `conventions.md`.
 Rule 11 still applies: games keep saved progress in the player's browser (see the Games table).
 Listed 2026-11-07 (Justin's choice of how rules fit a project; architectureOS ADR 5).
 
-### Games
+### Pages and cards
 
 | When | Do |
 |---|---|
-| Adding or changing a game | Use the `add-game` skill; it pushes straight to `main` and the game goes live by itself. Keep it a standalone page in `games/<slug>/`: its own complete HTML document, no front matter, no site header (`bl-nav`). Give it metadata as `docs/GAME_METADATA.md` describes; `docs/AGENT_PROMPT_ADDENDUM.md` is the brief for building one. |
-| A game needs a file the site shouldn't publish (dev scripts, sources) | Add a glob to the game's `.publishignore`. Docs, Rust, TOML, TypeScript, shell scripts, lockfiles, package and metadata files are never published anyway. |
+| Adding or changing anything | Use the `add` skill: it picks the section, writes the card, checks and pushes straight to `main`; it goes live by itself. A game is a standalone page in `site/games/<slug>/`: its own complete HTML document, no front matter, no site header (`bl-nav`). Give it metadata as `docs/GAME_METADATA.md` describes; `docs/AGENT_PROMPT_ADDENDUM.md` is the brief for building one. |
+| A page needs a file the site shouldn't publish (dev scripts, sources) | Add a glob to the game's `.publishignore`. Docs, Rust, TOML, TypeScript, shell scripts, lockfiles, package and metadata files are never published anyway. |
 | Adding images, sounds or fonts | No published file may be over 750 KB: size images to how they're drawn. |
 | Changing how a game saves progress (core rule 11) | Keep existing saves loading: read the old format or migrate it. Never silently reset a player's saved progress or high scores. |
 | The dungeon crawler | Its build output (`index.html`, `assets/`) is made by `tools/pack.py` and never committed. Vite's `base` must stay `/projects/games/dungeon-crawler/`. |
@@ -225,14 +227,17 @@ Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies 
 - Bring a branch up to date by (merge or rebase): merge.
 - Reviewer: with no second reviewer, the person reviews the whole diff themselves before it merges.
 - How changes reach users, and who runs it: nobody runs anything. Every push to `main` that changes
-  what the site shows makes the Release workflow publish the next version (`games-vX.Y.Z.tar.gz`
+  what the site shows makes the Release workflow publish the next version (`projects-vX.Y.Z.tar.gz`
   and its sha256) and ask the blog to pin it; the blog's Update components workflow runs its checks,
   pins the release and deploys (ADR 3).
 
 ### Where things live (feature-fit searches these)
 
-- Pages and navigation: one folder per game in `games/<slug>/` (published at
-  `/projects/games/<slug>/`); the catalogue is `games/index.html`. Site navigation belongs to the blog.
+- Pages and navigation: `site/` mirrors /projects/: a folder per item in its section (`site/games/`,
+  `site/workouts/`, `site/bootstraps/`, or `site/` itself for projects), cards in `card.json`,
+  `section.json` or a `bl-card` comment (`tools/sections.py`). The games catalogue is
+  `site/games/index.html`; other section pages come from `templates/section.html`. Site
+  navigation belongs to the blog.
 - Help or user docs: `README.md`; `docs/GAME_METADATA.md`; `docs/AGENT_PROMPT_ADDENDUM.md`.
 - Starter docs: none yet.
 - API endpoints: none; the games are static files.

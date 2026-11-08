@@ -1,6 +1,6 @@
 # Site-integration addendum for game-build prompts
 
-Build a standalone game at `games/<slug>/index.html` (published at
+Build a standalone game at `site/games/<slug>/index.html` (published at
 `/projects/games/<slug>/` on bensonlabs.org) with its own complete
 HTML document, styles, and scripts. Do not add Jekyll front matter, a site-header
 snippet, canonical markers, or navigation auto-hide machinery. No screen corner
@@ -19,6 +19,6 @@ Run `python3 tools/pack.py` to validate the metadata and build the packed site i
 committed. Files a browser never needs (docs, sources, lockfiles) are left out of
 a release; list a game's other development files in its `.publishignore`.
 
-The catalogue page (`games/index.html`) is the one page that gets the site
+The catalogue page (`site/games/index.html`) is the one page that gets the site
 header: the blog wraps it when it assembles bensonlabs.org. Keep it a complete
 standalone HTML document, and keep its games-list placeholder.

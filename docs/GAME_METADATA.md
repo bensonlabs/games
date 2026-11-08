@@ -2,7 +2,7 @@
 
 `tools/build_games_registry.py` validates every game's metadata and builds the
 catalogue list; `tools/pack.py` writes that list into the catalogue page
-(`games/index.html`) in the packed release. Nothing generated is committed, and
+(`site/games/index.html`) in the packed release. Nothing generated is committed, and
 games are never rewritten to register them.
 
 ## Authored sources and precedence
