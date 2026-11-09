@@ -1,4 +1,4 @@
-"""Reading pages with an HTML parser rather than text search (core rule 8).
+"""Reading pages with an HTML parser rather than text search.
 
 Shared by bensonlabs/games and bensonlabs/projects (tools/html_checks.py): the two copies are
 identical, so change both.

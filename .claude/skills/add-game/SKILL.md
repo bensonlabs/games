@@ -49,8 +49,7 @@ asking, except where they say to show Justin something.
    (`games-link: top-right`, `games-link: top-left 68px`; `docs/GAME_METADATA.md`), and check
    again.
 5. **Commit and push** only the game's folder: `git add games/<slug>` then a commit "Add <title>"
-   and `git push` to `main`. If the push reminder says something, answer it in the commit message as
-   it asks.
+   and `git push` to `main`.
 6. **Confirm it went live.** Watch the Release run (`gh run watch` on the newest Release run), then
    the blog's Update components run. When both pass, check
    `https://bensonlabs.org/projects/games/<slug>/` answers 200 and the catalogue lists the card.

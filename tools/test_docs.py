@@ -5,7 +5,7 @@ starts with tools/, games/, docs/ or .claude/ must exist. A path with a placehol
 (`games/<slug>/index.html`, `docs/decisions/NNNN-<slug>.md`) is a pattern: the folder before
 its first placeholder must exist. A decision record cited by its number (`docs/decisions/0002`)
 must match exactly one record. The docs are Markdown, not code, so a pattern finds the
-`code spans` (core rule 8 allows text search for non-code files).
+`code spans` (text search is fine for non-code files).
 """
 import re
 import unittest
@@ -14,6 +14,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ("README.md", "CLAUDE.md", "docs/**/*.md", ".claude/skills/**/*.md")
 PREFIXES = ("tools/", "games/", "docs/", ".claude/")
+# Folders made when needed and never committed (the kickoff skill puts worktrees here).
+NOT_IN_REPO = (".claude/worktrees/",)
 CODE_SPAN = re.compile(r"`([^`\n]+)`")
 PLACEHOLDER = re.compile(r"<[^>]*>|\*|\{|N{4}")
 DECISION_NUMBER = re.compile(r"docs/decisions/(\d{4})")
@@ -24,8 +26,8 @@ def cited_paths(text: str) -> list[str]:
     paths = []
     for span in CODE_SPAN.findall(text):
         for word in span.split():
-            word = word.strip("'\"(),.:;")
-            if word.startswith(PREFIXES):
+            word = word.strip("'\"(),:;").rstrip(".")  # a sentence's full stop, not .claude/'s dot
+            if word.startswith(PREFIXES) and not word.startswith(NOT_IN_REPO):
                 paths.append(word)
     return paths
 
