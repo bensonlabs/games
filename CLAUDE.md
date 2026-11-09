@@ -204,14 +204,21 @@ Shortcut: if `python3 tools/pack.py` passes, the release will build; it applies 
 
 ### Files shared with other repos
 
-- The same in bensonlabs/games, bensonlabs/projects and bensonlabs/bootstraps: `tools/next_version.py`,
-  three functions in `tools/pack.py` (`read_publishignore`, `publishable`, `write_release`), and
-  `.github/workflows/release.yml` apart from its env block and the lines marked "games only".
-- The same in games and projects: `tools/html_checks.py`, and `.github/workflows/ci.yml` apart from
-  the lines marked "games only" and its name.
-- Each says so at its top. Change one, and make the same change in the others.
+- Identical in bensonlabs/games, bensonlabs/projects and bensonlabs/bootstraps:
+  `.github/workflows/release.yml`, `tools/next_version.py`, `tools/check_shared.py`,
+  `tools/test_check_shared.py`, and three functions in `tools/pack.py` (`read_publishignore`,
+  `publishable`, `write_release`).
+- Identical in games and projects: `.github/workflows/ci.yml` and `tools/html_checks.py`.
+- What differs per repo comes from the repository's name (`github.event.repository.name`): the
+  component, its release notes, and the steps that have an `if:` for games. Keep it that way: no
+  per-repo edits inside a shared file.
+- `tools/check_shared.py` runs on every pull request and fails when a copy differs; its list of
+  shared files is at its top. To change a shared file, make the same change in every repo that
+  shares it on one branch name, push all those branches, then open the pull requests: each check
+  compares against the other repos' branch of that name, or main if there's none.
 - Why copies rather than a shared package: the repos are small and separate on purpose (site
-  review P11, owner default 2026-11-08).
+  review P11, owner default 2026-11-08). The check replaced "change both" notes in the files
+  (owner decision 2026-11-08: checks, not reminders).
 
 ### Commands
 

@@ -1,9 +1,11 @@
-name: Games
-# shared with bensonlabs/projects (.github/workflows/ci.yml): change both. Only the lines
-# marked "games only" and the workflow's name differ.
+name: Checks
+# Shared by bensonlabs/games and bensonlabs/projects (.github/workflows/ci.yml): the copies are
+# identical (tools/check_shared.py checks it), so change both. Steps only games needs say so in
+# their `if:`.
 #
-# Pull requests; pushes to main run the same checks in release.yml before releasing. Also
-# lints the workflow files (actionlint, with shellcheck on their scripts).
+# Pull requests; pushes to main run the same checks in release.yml before releasing. Also lints
+# the workflow files (actionlint, with shellcheck on their scripts), and checks that the files
+# shared with the other content repos still match.
 on:
   pull_request:
   workflow_dispatch:
@@ -17,7 +19,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7 # games only
+      - if: github.event.repository.name == 'games'
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -26,7 +29,8 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_*.py'
       - name: Build and pack everything (as a release would)
         run: python3 tools/pack.py
-      - name: Check the dungeon crawler build # games only
+      - name: Check the dungeon crawler build
+        if: github.event.repository.name == 'games'
         run: python3 tools/check_dungeon_build.py
       - name: Packing changes no committed file
         run: git diff --exit-code
@@ -49,3 +53,18 @@ jobs:
           echo "${SHA256}  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
           "$RUNNER_TEMP/actionlint" -color
+
+  shared:
+    name: Shared files match the other repos
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Each file shared with bensonlabs/games, projects or bootstraps must match the copies there
+      # (on a branch of this branch's name if they have one, else main): tools/check_shared.py.
+      - name: Compare the shared files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/check_shared.py
